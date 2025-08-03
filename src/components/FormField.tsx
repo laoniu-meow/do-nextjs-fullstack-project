@@ -9,6 +9,7 @@ export interface FormFieldProps {
   placeholder?: string;
   type?: 'text' | 'file';
   accept?: string;
+  onFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function FormField({
@@ -18,6 +19,7 @@ export default function FormField({
   placeholder = '',
   type = 'text',
   accept,
+  onFileChange,
 }: FormFieldProps) {
   return (
     <div>
@@ -34,7 +36,9 @@ export default function FormField({
       <input
         type={type}
         value={type === 'text' ? value : undefined}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={
+          type === 'file' ? onFileChange : (e) => onChange(e.target.value)
+        }
         placeholder={placeholder}
         accept={accept}
         style={{

@@ -11,13 +11,18 @@ const cors = Cors({
     
     // Allow localhost and your domain
     const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://127.0.0.1:3000',
-      'http://127.0.0.1:3001',
+      process.env.CORS_ORIGIN_DEV_1 || 'http://localhost:3000',
+      process.env.CORS_ORIGIN_DEV_2 || 'http://localhost:3001',
+      process.env.CORS_ORIGIN_DEV_3 || 'http://127.0.0.1:3000',
+      process.env.CORS_ORIGIN_DEV_4 || 'http://127.0.0.1:3001',
+      // Remote network access
+      process.env.CORS_ORIGIN_REMOTE_1 || 'http://0.0.0.0:3000',
+      process.env.CORS_ORIGIN_REMOTE_2 || 'http://0.0.0.0:3001',
+      process.env.CORS_ORIGIN_REMOTE_3 || 'http://10.255.255.254:3000',
+      process.env.CORS_ORIGIN_REMOTE_4 || 'http://10.255.255.254:3001',
       // Add your production domain here
-      // 'https://yourdomain.com',
-    ];
+      // process.env.CORS_ORIGIN_PROD || 'https://yourdomain.com',
+    ].filter(Boolean); // Remove empty values
     
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);

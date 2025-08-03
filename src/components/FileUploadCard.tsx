@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { ResponsiveStyles } from '@/hooks/useResponsiveStyles';
+import Image from 'next/image';
 
 export interface FileUploadCardProps {
   title: string;
@@ -92,9 +93,11 @@ export default function FileUploadCard({
             }}
           >
             {preview ? (
-              <img
+              <Image
                 src={preview}
                 alt={`${title} Preview`}
+                width={isMobile ? 120 : 140}
+                height={isMobile ? 80 : 90}
                 style={{
                   maxWidth: '100%',
                   maxHeight: '100%',
@@ -104,19 +107,6 @@ export default function FileUploadCard({
             ) : (
               placeholder
             )}
-          </div>
-
-          {/* Upload text */}
-          <div
-            style={{
-              fontSize: isMobile ? '11px' : '12px',
-              color: '#6c757d',
-              textAlign: 'center',
-              marginTop: '4px',
-              fontWeight: '500',
-            }}
-          >
-            Upload {title} (Click the below to upload file)
           </div>
         </div>
       </div>
