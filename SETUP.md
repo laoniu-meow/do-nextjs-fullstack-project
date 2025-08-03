@@ -23,12 +23,16 @@
 
 3. **Set up environment variables**
 
-   ```bash
-   cp .env.example .env.local
-   cp docker.env.example docker.env
-   ```
+   Create `.env.local` with your configuration values. Include these Docker variables:
 
-   Edit `.env.local` and `docker.env` with your configuration values.
+   ```bash
+   # Docker PostgreSQL Configuration
+   POSTGRES_CONTAINER_NAME=company-webapp
+   POSTGRES_DB=your_database_name
+   POSTGRES_USER=your_username
+   POSTGRES_PASSWORD=your_secure_password
+   POSTGRES_PORT=5432
+   ```
 
 4. **Start the development environment**
 
@@ -41,8 +45,8 @@
 ### Database Setup
 
 ```bash
-# Start PostgreSQL with environment variables
-docker-compose --env-file docker.env up -d postgres
+# Start PostgreSQL with environment variables from .env.local
+docker-compose up -d postgres
 
 # Generate Prisma client
 npx prisma generate
@@ -68,14 +72,13 @@ npm run dev
 - CORS settings
 - File upload configuration
 
-### Docker Variables (docker.env)
+### Docker Variables (.env.local)
 
 - `POSTGRES_CONTAINER_NAME` - Docker container name
 - `POSTGRES_DB` - Database name
 - `POSTGRES_USER` - Database user
 - `POSTGRES_PASSWORD` - Database password
 - `POSTGRES_PORT` - Database port
-- `POSTGRES_HOST_AUTH_METHOD` - Authentication method
 
 ## Remote Connection & CORS Support
 
