@@ -24,6 +24,14 @@ export const adminMenuItems: MenuItemProps[] = [
     label: 'Settings',
     icon: '⚙️',
     href: '/admin/settings',
+    subItems: [
+      {
+        id: 'header',
+        label: 'Header',
+        icon: '📋',
+        href: '/admin/settings/header',
+      },
+    ],
   },
 ];
 

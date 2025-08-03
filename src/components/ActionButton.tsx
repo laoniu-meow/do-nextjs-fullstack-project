@@ -9,6 +9,7 @@ export interface ActionButtonProps {
   onClick: () => void;
   variant?: ButtonVariant;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 export default function ActionButton({
@@ -16,6 +17,7 @@ export default function ActionButton({
   onClick,
   variant = 'primary',
   disabled = false,
+  style,
 }: ActionButtonProps) {
   const getButtonStyles = () => {
     const baseStyles = {
@@ -53,7 +55,11 @@ export default function ActionButton({
   };
 
   return (
-    <button onClick={onClick} disabled={disabled} style={getButtonStyles()}>
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      style={{ ...getButtonStyles(), ...style }}
+    >
       {text}
     </button>
   );

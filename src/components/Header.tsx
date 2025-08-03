@@ -32,6 +32,17 @@ export default function Header() {
     };
 
     fetchCompanyLogo();
+
+    // Listen for logo update events
+    const handleLogoUpdate = () => {
+      fetchCompanyLogo();
+    };
+
+    window.addEventListener('logo-updated', handleLogoUpdate);
+
+    return () => {
+      window.removeEventListener('logo-updated', handleLogoUpdate);
+    };
   }, []);
 
   return (

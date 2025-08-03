@@ -7,6 +7,7 @@ import CompanyInfoField from '@/components/CompanyInfoField';
 import FileUploadCard from '@/components/FileUploadCard';
 import FormField from '@/components/FormField';
 import ActionButton from '@/components/ActionButton';
+import ImageGallery from '@/components/ImageGallery';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -26,8 +27,10 @@ export default function CompanyPage() {
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [modalType, setModalType] = useState<'logo' | 'banner'>('logo');
+  const [modalTab, setModalTab] = useState<'upload' | 'existing'>('upload');
   const [filename, setFilename] = useState('');
   const [altText, setAltText] = useState('');
+  const [selectedExistingImage, setSelectedExistingImage] = useState<any>(null);
 
   // Applied files (only shown after clicking Apply)
   const [appliedLogoFile, setAppliedLogoFile] = useState<File | null>(null);
@@ -301,6 +304,8 @@ export default function CompanyPage() {
           setBannerPreview(result);
         }
         setFilename(filename || file.name);
+        // Clear selected existing image when uploading new file
+        setSelectedExistingImage(null);
       };
       reader.readAsDataURL(file);
     }
@@ -318,7 +323,17 @@ export default function CompanyPage() {
       setAppliedBannerFile(null);
       setAppliedBannerPreview(null);
     }
+    setSelectedExistingImage(null);
     setFilename('');
+  };
+
+  const handleSelectExistingImage = (image: any) => {
+    setSelectedExistingImage(image);
+    // Auto-set filename and alt text for existing images
+    setFilename(image.filename);
+    setAltText(
+      `${modalType === 'logo' ? 'Logo' : 'Banner'} - ${image.filename}`
+    );
   };
 
   const handleApply = async () => {
@@ -327,25 +342,74 @@ export default function CompanyPage() {
         `${modalType} file:`,
         modalType === 'logo' ? logoFile : bannerFile
       );
+      console.log('Selected existing image:', selectedExistingImage);
       console.log('Filename:', filename);
       console.log('Alt text:', altText);
 
-      if (modalType === 'logo' && logoFile) {
-        setAppliedLogoFile(logoFile);
-        setAppliedLogoPreview(logoPreview);
-        console.log(
-          'Logo uploaded to:',
-          process.env.UPLOAD_LOGOS_DIR || '/public/logos'
-        );
-        console.log('Logo filename:', filename);
-      } else if (modalType === 'banner' && bannerFile) {
-        setAppliedBannerFile(bannerFile);
-        setAppliedBannerPreview(bannerPreview);
-        console.log(
-          'Banner uploaded to:',
-          process.env.UPLOAD_MEDIA_DIR || '/public/media'
-        );
-        console.log('Banner filename:', filename);
+      if (modalType === 'logo') {
+        if (logoFile) {
+          // Upload the file to server (takes priority over selected existing image)
+          const formData = new FormData();
+          formData.append('file', logoFile);
+          formData.append('type', 'logo');
+          formData.append('filename', filename);
+
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log('File uploaded successfully:', uploadResult);
+
+            setAppliedLogoFile(logoFile);
+            setAppliedLogoPreview(uploadResult.url);
+            console.log('Logo uploaded to:', uploadResult.path);
+            console.log('Logo filename:', filename);
+          } else {
+            console.error('Failed to upload file');
+            alert('Failed to upload file. Please try again.');
+            return;
+          }
+        } else if (selectedExistingImage) {
+          // Use existing image
+          setAppliedLogoPreview(selectedExistingImage.url);
+          console.log('Using existing logo:', selectedExistingImage.filename);
+          console.log('Existing logo URL:', selectedExistingImage.url);
+        }
+      } else if (modalType === 'banner') {
+        if (bannerFile) {
+          // Upload the file to server (takes priority over selected existing image)
+          const formData = new FormData();
+          formData.append('file', bannerFile);
+          formData.append('type', 'banner');
+          formData.append('filename', filename);
+
+          const uploadResponse = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (uploadResponse.ok) {
+            const uploadResult = await uploadResponse.json();
+            console.log('File uploaded successfully:', uploadResult);
+
+            setAppliedBannerFile(bannerFile);
+            setAppliedBannerPreview(uploadResult.url);
+            console.log('Banner uploaded to:', uploadResult.path);
+            console.log('Banner filename:', filename);
+          } else {
+            console.error('Failed to upload file');
+            alert('Failed to upload file. Please try again.');
+            return;
+          }
+        } else if (selectedExistingImage) {
+          // Use existing image
+          setAppliedBannerPreview(selectedExistingImage.url);
+          console.log('Using existing banner:', selectedExistingImage.filename);
+          console.log('Existing banner URL:', selectedExistingImage.url);
+        }
       }
 
       // Save the logo/banner immediately to staging
@@ -357,6 +421,7 @@ export default function CompanyPage() {
       setShowModal(false);
     } catch (error) {
       console.error('Error applying changes:', error);
+      alert('Error applying changes. Please try again.');
     }
   };
 
@@ -370,8 +435,8 @@ export default function CompanyPage() {
         postalCode: groupedFields[2][1].value,
         email: groupedFields[3][0].value,
         contact: groupedFields[3][1].value,
-        logo: modalType === 'logo' ? logoPreview : appliedLogoPreview,
-        banner: modalType === 'banner' ? bannerPreview : appliedBannerPreview,
+        logo: appliedLogoPreview,
+        banner: appliedBannerPreview,
       };
 
       console.log('Saving logo/banner to staging:', {
@@ -381,6 +446,12 @@ export default function CompanyPage() {
           : 'null',
         banner: companyData.banner
           ? companyData.banner.substring(0, 50) + '...'
+          : 'null',
+        appliedLogoPreview: appliedLogoPreview
+          ? appliedLogoPreview.substring(0, 50) + '...'
+          : 'null',
+        appliedBannerPreview: appliedBannerPreview
+          ? appliedBannerPreview.substring(0, 50) + '...'
           : 'null',
       });
 
@@ -406,6 +477,7 @@ export default function CompanyPage() {
     setShowModal(false);
     setFilename('');
     setAltText('');
+    setSelectedExistingImage(null);
     if (modalType === 'logo') {
       setLogoFile(null);
       setLogoPreview(null);
@@ -557,11 +629,54 @@ export default function CompanyPage() {
     }
 
     try {
+      // First, ensure staging data is up to date with current applied logo/banner
+      console.log('Current applied logo:', appliedLogoPreview);
+      console.log('Current applied banner:', appliedBannerPreview);
+
+      // Update staging with current logo/banner before uploading to production
+      const currentStagingData = {
+        name: groupedFields[0][0].value,
+        registrationNumber: groupedFields[0][1].value,
+        address: groupedFields[1][0].value,
+        country: groupedFields[2][0].value,
+        postalCode: groupedFields[2][1].value,
+        email: groupedFields[3][0].value,
+        contact: groupedFields[3][1].value,
+        logo: appliedLogoPreview,
+        banner: appliedBannerPreview,
+      };
+
+      console.log('Updating staging before production upload:', {
+        logo: currentStagingData.logo
+          ? currentStagingData.logo.substring(0, 50) + '...'
+          : 'null',
+        banner: currentStagingData.banner
+          ? currentStagingData.banner.substring(0, 50) + '...'
+          : 'null',
+      });
+
+      // Update staging first
+      const stagingResponse = await fetch('/api/company/staging', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentStagingData),
+      });
+
+      if (!stagingResponse.ok) {
+        console.error('Failed to update staging before production upload');
+        alert('Failed to update staging data');
+        return;
+      }
+
+      const updatedStagingData = await stagingResponse.json();
+      setStagingData(updatedStagingData);
+
+      // Now upload to production
       const response = await fetch('/api/company/staging', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          stagingId: stagingData.id,
+          stagingId: updatedStagingData.id,
           reviewedBy: 'admin', // This would come from user session in real app
         }),
       });
@@ -570,8 +685,50 @@ export default function CompanyPage() {
         const productionData = await response.json();
         setProductionData(productionData);
         alert('Successfully uploaded to production!');
-        // Reload data to show production version
-        loadCompanyData();
+
+        // Update the production data without reloading to preserve current state
+        console.log('Production data received:', {
+          logo: productionData.logo
+            ? productionData.logo.substring(0, 50) + '...'
+            : 'null',
+          banner: productionData.banner
+            ? productionData.banner.substring(0, 50) + '...'
+            : 'null',
+        });
+
+        if (productionData.logo) {
+          setAppliedLogoPreview(productionData.logo);
+          console.log('Logo updated from production data');
+          // Trigger header refresh
+          window.dispatchEvent(new Event('logo-updated'));
+        } else {
+          console.log('No logo in production data, keeping current logo');
+          // Keep the current logo if production data doesn't have it
+          if (!appliedLogoPreview) {
+            console.log('No current logo either, logo will be missing');
+          }
+        }
+        if (productionData.banner) {
+          setAppliedBannerPreview(productionData.banner);
+          console.log('Banner updated from production data');
+          // Trigger header refresh for banner updates too
+          window.dispatchEvent(new Event('logo-updated'));
+        } else {
+          console.log('No banner in production data, keeping current banner');
+          // Keep the current banner if production data doesn't have it
+          if (!appliedBannerPreview) {
+            console.log('No current banner either, banner will be missing');
+          }
+        }
+
+        // Update fields if they exist in production data
+        if (
+          productionData.name ||
+          productionData.registrationNumber ||
+          productionData.address
+        ) {
+          updateFieldsFromData(productionData);
+        }
       } else {
         alert('Failed to upload to production');
       }
@@ -671,7 +828,7 @@ export default function CompanyPage() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              width: '95%',
+              width: '98%',
             }}
           >
             <p
@@ -697,14 +854,14 @@ export default function CompanyPage() {
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: '20px',
               }}
             >
               <div title="Preview Staging Data">
                 <VisibilityIcon
                   onClick={handlePreviewClick}
                   style={{
-                    fontSize: responsive.isMobile ? '24px' : '28px',
+                    fontSize: responsive.isMobile ? '28px' : '32px',
                     color: '#1976d2',
                     cursor: 'pointer',
                   }}
@@ -714,7 +871,7 @@ export default function CompanyPage() {
                 <CloudUploadIcon
                   onClick={handleUploadToProduction}
                   style={{
-                    fontSize: responsive.isMobile ? '24px' : '28px',
+                    fontSize: responsive.isMobile ? '28px' : '32px',
                     color: '#388e3c',
                     cursor: 'pointer',
                   }}
@@ -965,6 +1122,8 @@ export default function CompanyPage() {
               maxHeight: '90vh',
               overflow: 'auto',
               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <h2
@@ -978,19 +1137,67 @@ export default function CompanyPage() {
               {modalType === 'logo' ? 'Logo Management' : 'Banner Management'}
             </h2>
 
+            {/* Tab Navigation */}
             <div
               style={{
                 display: 'flex',
-                flexDirection: responsive.isMobile ? 'column' : 'row',
-                gap: responsive.gapLarge,
                 marginBottom: '20px',
+                borderBottom: '1px solid #ddd',
               }}
             >
-              {/* Image Preview Area */}
+              <button
+                onClick={() => setModalTab('upload')}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor:
+                    modalTab === 'upload' ? '#1976d2' : 'transparent',
+                  color: modalTab === 'upload' ? 'white' : '#666',
+                  border: 'none',
+                  borderBottom:
+                    modalTab === 'upload' ? '2px solid #1976d2' : 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Upload New File
+              </button>
+              <button
+                onClick={() => setModalTab('existing')}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor:
+                    modalTab === 'existing' ? '#1976d2' : 'transparent',
+                  color: modalTab === 'existing' ? 'white' : '#666',
+                  border: 'none',
+                  borderBottom:
+                    modalTab === 'existing' ? '2px solid #1976d2' : 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                Browse Existing {selectedExistingImage && '✅'}
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px',
+                marginBottom: '20px',
+                flex: '1',
+                overflow: 'auto',
+              }}
+            >
+              {/* Image Preview Area with Remove Icon */}
               <div
                 style={{
-                  flex: '1',
-                  minHeight: '200px',
+                  width: '100%',
+                  height: '150px',
                   border: '2px dashed #dee2e6',
                   borderRadius: '8px',
                   display: 'flex',
@@ -998,48 +1205,163 @@ export default function CompanyPage() {
                   justifyContent: 'center',
                   backgroundColor: '#f8f9fa',
                   position: 'relative',
+                  overflow: 'hidden',
                 }}
               >
                 {(modalType === 'logo' ? logoPreview : bannerPreview) ? (
-                  <Image
-                    src={
-                      modalType === 'logo'
-                        ? logoPreview || ''
-                        : bannerPreview || ''
-                    }
-                    alt="Preview"
-                    width={400}
-                    height={300}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                    }}
-                  />
+                  <>
+                    <Image
+                      src={
+                        modalType === 'logo'
+                          ? logoPreview || ''
+                          : bannerPreview || ''
+                      }
+                      alt="Preview"
+                      width={120}
+                      height={80}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                    <button
+                      onClick={handleRemoveFile}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        border: '1px solid #ddd',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        color: '#d32f2f',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 1)';
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 0.9)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : selectedExistingImage ? (
+                  <>
+                    <Image
+                      src={selectedExistingImage.url}
+                      alt={selectedExistingImage.filename}
+                      width={120}
+                      height={80}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                    <button
+                      onClick={handleRemoveFile}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        border: '1px solid #ddd',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        color: '#d32f2f',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 1)';
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 0.9)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </>
                 ) : (
                     modalType === 'logo'
-                      ? appliedLogoPreview
-                      : appliedBannerPreview
+                      ? logoPreview || appliedLogoPreview
+                      : bannerPreview || appliedBannerPreview
                   ) ? (
-                  <Image
-                    src={
-                      modalType === 'logo'
-                        ? appliedLogoPreview || ''
-                        : appliedBannerPreview || ''
-                    }
-                    alt="Current Preview"
-                    width={400}
-                    height={300}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain',
-                    }}
-                  />
+                  <>
+                    <Image
+                      src={
+                        modalType === 'logo'
+                          ? logoPreview || appliedLogoPreview || ''
+                          : bannerPreview || appliedBannerPreview || ''
+                      }
+                      alt="Current Preview"
+                      width={120}
+                      height={80}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        objectFit: 'contain',
+                      }}
+                    />
+                    <button
+                      onClick={handleRemoveFile}
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        border: '1px solid #ddd',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '16px',
+                        color: '#d32f2f',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 1)';
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                          'rgba(255, 255, 255, 0.9)';
+                        e.currentTarget.style.transform = 'scale(1)';
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </>
                 ) : (
                   <div style={{ textAlign: 'center', color: '#6c757d' }}>
-                    <div style={{ fontSize: '48px', marginBottom: '8px' }}>
-                      📁
+                    <div style={{ fontSize: '16px', marginBottom: '8px' }}>
+                      No file selected
                     </div>
                     <div>
                       {modalType === 'logo'
@@ -1050,53 +1372,79 @@ export default function CompanyPage() {
                 )}
               </div>
 
-              {/* Form Fields using reusable components */}
+              {/* Content based on selected tab */}
               <div
                 style={{
-                  flex: '1',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '16px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  padding: '8px',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '4px',
+                  backgroundColor: '#f9f9f9',
                 }}
               >
-                <FormField
-                  label={`Upload ${modalType === 'logo' ? 'Logo' : 'Banner'}`}
-                  value=""
-                  onChange={() => {}}
-                  type="file"
-                  accept="image/*"
-                  onFileChange={handleFileUpload}
-                />
+                {modalTab === 'upload' ? (
+                  <>
+                    <FormField
+                      label="Filename:"
+                      value={filename}
+                      onChange={setFilename}
+                      placeholder="Enter filename"
+                    />
 
-                <FormField
-                  label="Filename:"
-                  value={filename}
-                  onChange={setFilename}
-                  placeholder="Enter filename"
-                />
+                    <FormField
+                      label="Alt:"
+                      value={altText}
+                      onChange={setAltText}
+                      placeholder="Enter alt text"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <ImageGallery
+                      type={modalType}
+                      onSelect={handleSelectExistingImage}
+                      selectedImage={selectedExistingImage}
+                      onUpload={(file) => {
+                        // Handle upload from gallery
+                        if (modalType === 'logo') {
+                          setLogoFile(file);
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            const result = e.target?.result as string;
+                            setLogoPreview(result);
+                          };
+                          reader.readAsDataURL(file);
+                        } else {
+                          setBannerFile(file);
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            const result = e.target?.result as string;
+                            setBannerPreview(result);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                        setFilename(file.name);
+                        setSelectedExistingImage(null);
+                        setModalTab('upload');
+                      }}
+                      onDelete={(image) => {
+                        // The ImageGallery component now handles the API call and UI update
+                        // This callback is called after successful deletion
+                        console.log('Image deleted:', image.filename);
 
-                <FormField
-                  label="Alt:"
-                  value={altText}
-                  onChange={setAltText}
-                  placeholder="Enter alt text"
-                />
-
-                {(modalType === 'logo' ? logoFile : bannerFile) && (
-                  <ActionButton
-                    text={`Remove New ${modalType === 'logo' ? 'Logo' : 'Banner'}`}
-                    onClick={handleRemoveFile}
-                    variant="danger"
-                  />
-                )}
-                {(modalType === 'logo'
-                  ? appliedLogoPreview
-                  : appliedBannerPreview) && (
-                  <ActionButton
-                    text={`Remove Current ${modalType === 'logo' ? 'Logo' : 'Banner'}`}
-                    onClick={handleRemoveFile}
-                    variant="danger"
-                  />
+                        // If the deleted image was selected, clear the selection
+                        if (selectedExistingImage?.path === image.path) {
+                          setSelectedExistingImage(null);
+                          setFilename('');
+                          setAltText('');
+                        }
+                      }}
+                    />
+                  </>
                 )}
               </div>
             </div>
@@ -1106,18 +1454,40 @@ export default function CompanyPage() {
               style={{
                 display: 'flex',
                 gap: '12px',
-                justifyContent: 'flex-end',
+                justifyContent: 'space-between',
               }}
             >
               <ActionButton
                 text="Cancel"
                 onClick={handleCancel}
                 variant="secondary"
+                style={{ flex: '1' }}
               />
               <ActionButton
-                text="Apply"
+                text="Upload"
+                onClick={() => {
+                  // Switch to upload tab first
+                  setModalTab('upload');
+                  // Trigger file upload
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*';
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      handleFileUpload(e as any);
+                    }
+                  };
+                  input.click();
+                }}
+                variant="secondary"
+                style={{ flex: '1' }}
+              />
+              <ActionButton
+                text={`Apply ${modalType === 'logo' ? 'Logo' : 'Banner'}`}
                 onClick={handleApply}
                 variant="primary"
+                style={{ flex: '1' }}
               />
             </div>
           </div>

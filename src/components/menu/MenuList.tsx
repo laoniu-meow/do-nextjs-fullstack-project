@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import MenuItem, { MenuItemProps } from './MenuItem';
 
 export interface MenuListProps {
@@ -20,6 +20,59 @@ export default function MenuList({
   isMobile = false,
   isTablet = false,
 }: MenuListProps) {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (itemId: string) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId);
+    } else {
+      newExpanded.add(itemId);
+    }
+    setExpandedItems(newExpanded);
+  };
+
+  const renderMenuItem = (item: MenuItemProps, level: number = 0) => {
+    const hasSubItems = item.subItems && item.subItems.length > 0;
+    const isExpanded = expandedItems.has(item.id);
+    const isActive = activeItemId === item.id;
+
+    return (
+      <div key={item.id}>
+        <MenuItem
+          {...item}
+          isActive={isActive}
+          onClick={() => {
+            if (hasSubItems) {
+              toggleExpanded(item.id);
+            } else {
+              onItemClick?.(item);
+            }
+          }}
+          isMobile={isMobile}
+          isTablet={isTablet}
+          level={level}
+          hasSubItems={hasSubItems}
+          isExpanded={isExpanded}
+        />
+        {hasSubItems && isExpanded && (
+          <div
+            style={{
+              marginLeft: level * 20 + 20,
+              borderLeft: '2px solid #e0e0e0',
+              marginTop: '4px',
+              marginBottom: '4px',
+            }}
+          >
+            {item.subItems!.map((subItem) =>
+              renderMenuItem(subItem, level + 1)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div style={{ width: '100%' }}>
       {title && (
@@ -36,16 +89,7 @@ export default function MenuList({
         </h2>
       )}
       <div style={{ width: '100%' }}>
-        {items.map((item) => (
-          <MenuItem
-            key={item.id}
-            {...item}
-            isActive={activeItemId === item.id}
-            onClick={() => onItemClick?.(item)}
-            isMobile={isMobile}
-            isTablet={isTablet}
-          />
-        ))}
+        {items.map((item) => renderMenuItem(item))}
       </div>
     </div>
   );

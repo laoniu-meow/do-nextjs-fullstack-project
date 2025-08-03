@@ -12,6 +12,10 @@ export interface MenuItemProps {
   children?: React.ReactNode;
   isMobile?: boolean;
   isTablet?: boolean;
+  subItems?: MenuItemProps[];
+  level?: number;
+  hasSubItems?: boolean;
+  isExpanded?: boolean;
 }
 
 export default function MenuItem({
@@ -23,11 +27,17 @@ export default function MenuItem({
   children,
   isMobile = false,
   isTablet = false,
+  level = 0,
+  hasSubItems = false,
+  isExpanded = false,
 }: MenuItemProps) {
   return (
     <div
       style={{
-        padding: isMobile ? '10px 12px' : isTablet ? '12px 14px' : '12px 16px',
+        paddingTop: isMobile ? '10px' : isTablet ? '12px' : '12px',
+        paddingRight: isMobile ? '12px' : isTablet ? '14px' : '16px',
+        paddingBottom: isMobile ? '10px' : isTablet ? '12px' : '12px',
+        paddingLeft: `${12 + level * 20}px`,
         cursor: 'pointer',
         backgroundColor: isActive ? '#e3f2fd' : 'transparent',
         borderBottom: '1px solid #eee',
@@ -62,10 +72,23 @@ export default function MenuItem({
         style={{
           color: isActive ? '#1976d2' : '#333',
           fontWeight: isActive ? '600' : '400',
+          flex: '1',
         }}
       >
         {label}
       </span>
+      {hasSubItems && (
+        <span
+          style={{
+            fontSize: '12px',
+            color: '#666',
+            transition: 'transform 0.2s ease',
+            transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+          }}
+        >
+          ▶
+        </span>
+      )}
       {children}
     </div>
   );
