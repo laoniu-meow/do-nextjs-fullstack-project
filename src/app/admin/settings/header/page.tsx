@@ -10,9 +10,26 @@ import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ModernColorPicker from '@/components/ModernColorPicker';
 import ResponsiveHeader from '@/components/ResponsiveHeader';
+import ToggleMenuButton from '@/components/ToggleMenuButton';
+import { Icon } from '@/components/icons/IconLibrary';
+import {
+  ToggleMenuButtonConfig,
+  defaultToggleMenuConfig,
+  ButtonShape,
+  ButtonSize,
+  ShadowType,
+} from '@/types/toggleMenuConfig';
+import { getCrossPlatformStyles } from '@/utils/crossPlatformStyles';
+import {
+  getLogoSizeOptions,
+  getLogoSizeByOrientationAndSize,
+  getCurrentLogoSize,
+  type LogoSizeOption,
+} from '@/utils/logoSizeOptions';
 
 export default function HeaderSettingsPage() {
   const responsive = useResponsiveStyles();
+  const crossPlatformStyles = getCrossPlatformStyles(responsive);
   const [isOpen, setIsOpen] = useState(false);
   const [activeItemId, setActiveItemId] = useState('header');
 
@@ -32,7 +49,19 @@ export default function HeaderSettingsPage() {
     logoWidth: '4.35rem', // Medium portrait (6.5rem * 0.67)
     logoHeight: '6.5rem', // Medium (96px equivalent)
     logoOrientation: 'portrait', // portrait or landscape
+    logoShadow: 'none', // none, light, medium, heavy, glow
+    logoShadowColor: 'black', // black, grey, white
+    logoShadowDirection: 'bottom-right', // shadow direction
   });
+
+  // Toggle Menu Button configuration
+  const [toggleMenuConfig, setToggleMenuConfig] =
+    useState<ToggleMenuButtonConfig>(defaultToggleMenuConfig);
+  const [toggleMenuConfigLoaded, setToggleMenuConfigLoaded] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentLogoSize, setCurrentLogoSize] = useState<
+    'small' | 'medium' | 'large'
+  >('medium');
 
   // Staging states for individual settings
   const [stagingBackgroundColor, setStagingBackgroundColor] = useState<
@@ -64,29 +93,23 @@ export default function HeaderSettingsPage() {
 
   const loadHeaderData = async () => {
     try {
-      console.log('Loading header data...');
-
       // Load production header data (same as frontend)
       const headerResponse = await fetch('/api/company/logo');
       const headerData = await headerResponse.json();
-      console.log('Production header data:', headerData);
       setProductionHeaderData(headerData);
 
       // Load production data
       const prodResponse = await fetch('/api/header');
       const prodData = await prodResponse.json();
-      console.log('Production data:', prodData);
       setProductionData(prodData);
 
       // Load staging data
       const stagingResponse = await fetch('/api/header/staging');
       const stagingData = await stagingResponse.json();
-      console.log('Staging data:', stagingData);
       setStagingData(stagingData || null);
 
       // Use staging data if available, otherwise use production data
       const dataToUse = stagingData && stagingData.id ? stagingData : prodData;
-      console.log('Data to use:', dataToUse);
 
       if (dataToUse && dataToUse.id) {
         setOriginalHeaderData(dataToUse);
@@ -102,19 +125,15 @@ export default function HeaderSettingsPage() {
           logoWidth: dataToUse.logoWidth || '4.35rem',
           logoHeight: dataToUse.logoHeight || '6.5rem',
           logoOrientation: dataToUse.logoOrientation || 'portrait',
+          logoShadow: dataToUse.logoShadow || 'none',
+          logoShadowColor: dataToUse.logoShadowColor || 'black',
+          logoShadowDirection: dataToUse.logoShadowDirection || 'bottom-right',
         });
-      } else {
-        console.log('No data found, using default values');
       }
     } catch (error) {
       console.error('Error loading header data:', error);
     }
   };
-
-  // Load data on component mount
-  useEffect(() => {
-    loadHeaderData();
-  }, []);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -122,182 +141,216 @@ export default function HeaderSettingsPage() {
 
   const handleMenuItemClick = (item: any) => {
     setActiveItemId(item.id);
-    console.log('Menu item clicked:', item);
-
-    if (item.href) {
-      window.location.href = item.href;
-    }
-
-    if (responsive.isMobile) {
-      setIsOpen(false);
-    }
+    setIsOpen(false);
   };
 
-  // Helper function to get border shadow CSS
   const getBorderShadow = (shadowType: string) => {
     switch (shadowType) {
       case 'light':
-        return '0 1px 3px rgba(0,0,0,0.1)';
+        return '0 1px 3px rgba(0,0,0,0.12)';
       case 'medium':
-        return '0 2px 8px rgba(0,0,0,0.15)';
+        return '0 2px 6px rgba(0,0,0,0.15)';
       case 'heavy':
-        return '0 4px 12px rgba(0,0,0,0.2)';
+        return '0 4px 12px rgba(0,0,0,0.25)';
       default:
         return 'none';
     }
   };
 
-  // Helper function to calculate logo dimensions based on orientation and size
   const getLogoDimensions = (orientation: string, size: string) => {
-    const sizeMap = {
-      small: '5rem', // 80px - Increased from 4.5rem
-      medium: '6.5rem', // 104px - Increased from 6rem
-      large: '8rem', // 128px - Increased from 7.5rem
-    };
+    const baseWidth = size === 'small' ? 3 : size === 'medium' ? 4.35 : 5.5;
+    const baseHeight = size === 'small' ? 4.5 : size === 'medium' ? 6.5 : 8.5;
 
-    const height = sizeMap[size as keyof typeof sizeMap] || '2.5rem';
-
-    if (orientation === 'portrait') {
-      // Portrait: height is larger, width is smaller (2:3 ratio)
-      const heightValue = parseFloat(height);
-      const widthValue = heightValue * 0.67; // 2:3 ratio
+    if (orientation === 'landscape') {
       return {
-        width: `${widthValue}rem`,
-        height: height,
+        width: `${baseWidth * 1.5}rem`,
+        height: `${baseHeight}rem`,
       };
     } else {
-      // Landscape: width is larger, height is smaller (3:2 ratio)
-      const heightValue = parseFloat(height);
-      const widthValue = heightValue * 1.5; // 3:2 ratio
       return {
-        width: `${widthValue}rem`,
-        height: height,
+        width: `${baseWidth}rem`,
+        height: `${baseHeight}rem`,
       };
     }
   };
 
   const handleFieldChange = (field: string, value: string) => {
-    setHeaderConfig((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setHeaderConfig((prev) => ({ ...prev, [field]: value }));
     setHasChanges(true);
-    console.log('Field change:', field, value);
   };
 
-  // Handle logo orientation change
   const handleLogoOrientationChange = (orientation: string) => {
-    const currentSize =
-      headerConfig.logoHeight === '5rem'
-        ? 'small'
-        : headerConfig.logoHeight === '6.5rem'
-          ? 'medium'
-          : 'large';
-
-    const dimensions = getLogoDimensions(orientation, currentSize);
+    // Use the current logo size to get new dimensions for the new orientation
+    const { width, height } = getLogoDimensions(orientation, currentLogoSize);
 
     setHeaderConfig((prev) => ({
       ...prev,
       logoOrientation: orientation,
-      logoWidth: dimensions.width,
-      logoHeight: dimensions.height,
+      logoWidth: width,
+      logoHeight: height,
     }));
     setHasChanges(true);
   };
 
-  // Handle logo size change
   const handleLogoSizeChange = (size: string) => {
-    const dimensions = getLogoDimensions(headerConfig.logoOrientation, size);
-
+    const { width, height } = getLogoDimensions(
+      headerConfig.logoOrientation,
+      size
+    );
     setHeaderConfig((prev) => ({
       ...prev,
-      logoWidth: dimensions.width,
-      logoHeight: dimensions.height,
+      logoWidth: width,
+      logoHeight: height,
     }));
     setHasChanges(true);
+  };
+
+  const handleToggleMenuConfigChange = (
+    field: keyof ToggleMenuButtonConfig,
+    value: any
+  ) => {
+    setToggleMenuConfig((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleToggleMenuResponsiveChange = (
+    screen: 'mobile' | 'tablet' | 'desktop',
+    field: 'size',
+    value: any
+  ) => {
+    setToggleMenuConfig((prev) => ({
+      ...prev,
+      responsive: {
+        ...prev.responsive,
+        [screen]: {
+          ...prev.responsive[screen],
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const saveToggleMenuConfig = async () => {
+    try {
+      const response = await fetch('/api/toggle-menu/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(toggleMenuConfig),
+      });
+
+      if (response.ok) {
+        console.log('Toggle menu config saved successfully');
+      } else {
+        console.error('Failed to save toggle menu config');
+      }
+    } catch (error) {
+      console.error('Error saving toggle menu config:', error);
+    }
   };
 
   const handleSaveToStaging = async () => {
-    if (!hasChanges) {
-      alert('No changes to save');
-      return;
-    }
-
     try {
       const response = await fetch('/api/header/staging', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          backgroundColor: headerConfig.backgroundColor,
-          headerHeight: headerConfig.headerHeight,
-          headerPosition: headerConfig.headerPosition,
-          borderColor: headerConfig.borderColor,
-          borderHeight: headerConfig.borderHeight,
-          borderShadow: headerConfig.borderShadow,
-          logoWidth: headerConfig.logoWidth,
-          logoHeight: headerConfig.logoHeight,
-          logoOrientation: headerConfig.logoOrientation,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(headerConfig),
       });
 
       if (response.ok) {
         const savedData = await response.json();
         setStagingData(savedData);
         setHasChanges(false);
-        alert('All changes saved to staging successfully!');
+        console.log('Header settings saved to staging successfully');
       } else {
-        alert('Failed to save changes to staging');
+        console.error('Failed to save header settings to staging');
       }
     } catch (error) {
-      console.error('Error saving to staging:', error);
-      alert('Error saving to staging');
+      console.error('Error saving header settings to staging:', error);
     }
   };
 
   const handleUploadToProduction = async () => {
-    if (!stagingData || !stagingData.id) {
-      alert('No staging data available to upload');
-      return;
-    }
-
     try {
-      const response = await fetch('/api/header/staging', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          stagingId: stagingData.id,
-          reviewedBy: 'admin',
-        }),
+      const response = await fetch('/api/header', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(headerConfig),
       });
 
       if (response.ok) {
-        const productionData = await response.json();
-        setProductionData(productionData);
-        alert('Header settings successfully uploaded to production!');
-
-        // Reload data after successful upload
-        await loadHeaderData();
-
-        // Dispatch event to update frontend header
-        window.dispatchEvent(new Event('header-updated'));
+        const savedData = await response.json();
+        setProductionData(savedData);
+        setStagingData(null);
+        setHasChanges(false);
+        console.log('Header settings uploaded to production successfully');
       } else {
-        alert('Failed to upload header settings to production');
+        console.error('Failed to upload header settings to production');
       }
     } catch (error) {
       console.error('Error uploading header settings to production:', error);
-      alert('Error uploading header settings to production');
     }
   };
 
   const handlePreviewClick = () => {
-    if (stagingData && stagingData.id) {
-      alert(
-        `Preview Staging Data:\n\nBackground Color: ${stagingBackgroundColor || 'Not set'}\nHeader Height: ${stagingHeaderHeight || 'Not set'}\nHeader Position: ${stagingHeaderPosition || 'Not set'}\nBorder Color: ${stagingBorderColor || 'Not set'}\nBorder Height: ${stagingBorderHeight || 'Not set'}\nLogo Orientation: ${headerConfig.logoOrientation}\nLogo Width: ${stagingLogoWidth || 'Not set'}\nLogo Height: ${stagingLogoHeight || 'Not set'}\nStatus: ${stagingData.status}`
-      );
+    if (stagingData) {
+      // Open preview in new tab
+      window.open('/preview', '_blank');
     } else {
       alert('No staging data available to preview');
     }
   };
+
+  const handleToggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handlePredefinedLogoSizeChange = (
+    size: 'small' | 'medium' | 'large'
+  ) => {
+    setCurrentLogoSize(size);
+    const logoSizeOption = getLogoSizeByOrientationAndSize(
+      headerConfig.logoOrientation as 'portrait' | 'landscape',
+      size
+    );
+
+    setHeaderConfig((prev) => ({
+      ...prev,
+      logoWidth: logoSizeOption.width,
+      logoHeight: logoSizeOption.height,
+    }));
+    setHasChanges(true);
+  };
+
+  useEffect(() => {
+    loadHeaderData();
+  }, []);
+
+  // Initialize current logo size when header config changes
+  useEffect(() => {
+    if (headerConfig.logoWidth && headerConfig.logoHeight) {
+      const size = getCurrentLogoSize(
+        headerConfig.logoWidth,
+        headerConfig.logoHeight,
+        headerConfig.logoOrientation as 'portrait' | 'landscape'
+      );
+      setCurrentLogoSize(size);
+    }
+  }, [
+    headerConfig.logoWidth,
+    headerConfig.logoHeight,
+    headerConfig.logoOrientation,
+  ]);
+
+  useEffect(() => {
+    if (toggleMenuConfigLoaded) {
+      saveToggleMenuConfig();
+    }
+  }, [toggleMenuConfig, toggleMenuConfigLoaded, saveToggleMenuConfig]);
 
   return (
     <div style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
@@ -442,29 +495,24 @@ export default function HeaderSettingsPage() {
                 style={{
                   padding: '8px',
                   borderRadius: '8px',
-                  backgroundColor: hasChanges ? '#dbeafe' : '#f3f4f6',
+                  backgroundColor: '#f3f4f6',
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (hasChanges) {
-                    e.currentTarget.style.backgroundColor = '#bfdbfe';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                  e.currentTarget.style.transform = 'scale(1.05)';
                 }}
                 onMouseLeave={(e) => {
-                  if (hasChanges) {
-                    e.currentTarget.style.backgroundColor = '#dbeafe';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
                 <SaveIcon
                   onClick={handleSaveToStaging}
                   style={{
                     fontSize: responsive.isMobile ? '28px' : '32px',
-                    color: hasChanges ? '#1976d2' : '#9ca3af',
-                    cursor: hasChanges ? 'pointer' : 'not-allowed',
-                    opacity: hasChanges ? 1 : 0.5,
+                    color: '#1976d2',
+                    cursor: 'pointer',
                     transition: 'color 0.2s ease',
                   }}
                 />
@@ -474,640 +522,928 @@ export default function HeaderSettingsPage() {
                 style={{
                   padding: '8px',
                   borderRadius: '8px',
-                  backgroundColor:
-                    stagingData && stagingData.id ? '#dcfce7' : '#f3f4f6',
+                  backgroundColor: '#f3f4f6',
                   transition: 'all 0.2s ease',
                 }}
                 onMouseEnter={(e) => {
-                  if (stagingData && stagingData.id) {
-                    e.currentTarget.style.backgroundColor = '#bbf7d0';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                  e.currentTarget.style.transform = 'scale(1.05)';
                 }}
                 onMouseLeave={(e) => {
-                  if (stagingData && stagingData.id) {
-                    e.currentTarget.style.backgroundColor = '#dcfce7';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
                 <CloudUploadIcon
                   onClick={handleUploadToProduction}
                   style={{
                     fontSize: responsive.isMobile ? '28px' : '32px',
-                    color:
-                      stagingData && stagingData.id ? '#16a34a' : '#9ca3af',
-                    cursor:
-                      stagingData && stagingData.id ? 'pointer' : 'not-allowed',
-                    opacity: stagingData && stagingData.id ? 1 : 0.5,
+                    color: '#1976d2',
+                    cursor: 'pointer',
                     transition: 'color 0.2s ease',
                   }}
                 />
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Enhanced Header Preview Section */}
-          <div
+        {/* Live Preview Section */}
+        <div
+          style={{
+            marginBottom: '20px',
+            padding: '16px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef',
+          }}
+        >
+          <h3
             style={{
-              marginTop: '24px',
-              padding: '20px',
-              backgroundColor: '#f8fafc',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
+              fontSize: responsive.bodyFontSize,
+              marginBottom: '12px',
+              color: '#495057',
+              fontWeight: '600',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '16px',
-              }}
-            >
-              <div
-                style={{
-                  width: '4px',
-                  height: '20px',
-                  backgroundColor: '#1976d2',
-                  borderRadius: '2px',
-                }}
-              />
-              <h4
-                style={{
-                  margin: '0',
-                  fontSize: '16px',
-                  fontWeight: '700',
-                  color: '#1e293b',
-                }}
-              >
-                Live Preview
-              </h4>
-            </div>
-
-            {/* Enhanced Header Preview Container */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                marginBottom: '16px',
-                padding: '16px',
-                backgroundColor: '#ffffff',
-                borderRadius: '8px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                maxWidth: responsive.isMobile ? '375px' : '100%',
-                margin: responsive.isMobile ? '0 auto' : '0',
-              }}
-            >
-              <ResponsiveHeader
-                headerConfig={headerConfig}
-                companyLogo={productionHeaderData}
-                isLoading={!productionHeaderData}
-                screenSize={
-                  responsive.isMobile
-                    ? 'mobile'
-                    : responsive.isTablet
-                      ? 'tablet'
-                      : 'desktop'
-                }
-              />
-            </div>
-
-            {/* Enhanced Preview Info */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontSize: '13px',
-                color: '#64748b',
-                fontStyle: 'italic',
-              }}
-            >
-              <div
-                style={{
-                  width: '12px',
-                  height: '12px',
-                  backgroundColor: '#10b981',
-                  borderRadius: '50%',
-                }}
-              />
-              Automatically responsive across all devices
-              <span
-                style={{
-                  marginLeft: '8px',
-                  padding: '2px 8px',
-                  backgroundColor: '#e0e7ff',
-                  color: '#3730a3',
-                  borderRadius: '12px',
-                  fontSize: '11px',
-                  fontWeight: '500',
-                }}
-              >
-                {responsive.isMobile
-                  ? 'Mobile'
+            Live Preview
+          </h3>
+          <div
+            style={{
+              border: '1px solid #dee2e6',
+              borderRadius: '6px',
+              overflow: 'hidden',
+              backgroundColor: 'white',
+            }}
+          >
+            <ResponsiveHeader
+              headerConfig={headerConfig}
+              companyLogo={productionHeaderData}
+              isLoading={!productionHeaderData}
+              screenSize={
+                responsive.isMobile
+                  ? 'mobile'
                   : responsive.isTablet
-                    ? 'Tablet'
-                    : 'Desktop'}{' '}
-                Preview
-              </span>
-            </div>
+                    ? 'tablet'
+                    : 'desktop'
+              }
+              toggleMenuConfig={toggleMenuConfig}
+              onToggleMenu={handleToggleMenu}
+              isMenuOpen={isMenuOpen}
+            />
           </div>
         </div>
 
-        {/* Scrollable Content Section */}
+        {/* Configuration Sections */}
         <div
           style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
             flex: 1,
             overflowY: 'auto',
-            paddingRight: '8px',
-            paddingBottom: '20px',
-            minHeight: 0,
           }}
         >
-          {/* Single Comprehensive Header Configuration Card */}
+          {/* Background & Layout Section */}
           <div
             style={{
-              padding: '24px',
+              padding: '12px',
               backgroundColor: '#ffffff',
-              borderRadius: '12px',
-              fontSize: '14px',
-              boxShadow:
-                '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-              border: '1px solid #e2e8f0',
-              transition: 'all 0.2s ease',
-              marginBottom: '20px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow =
-                '0 10px 25px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow =
-                '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)';
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
             }}
           >
-            {/* Card Header */}
-            <div
+            <h3
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '24px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px',
+                height: '16px',
               }}
             >
-              <div
-                style={{
-                  width: '4px',
-                  height: '20px',
-                  backgroundColor: '#1976d2',
-                  borderRadius: '2px',
-                }}
-              />
-              <h4
-                style={{
-                  margin: '0',
-                  fontSize: '18px',
-                  fontWeight: '700',
-                  color: '#1e293b',
-                }}
-              >
-                Header Configuration
-              </h4>
-            </div>
-
-            {/* Settings Grid */}
+              Background & Layout
+            </h3>
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: responsive.isMobile
-                  ? '1fr'
-                  : 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '20px',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                alignItems: 'end',
               }}
             >
-              {/* Background & Header Settings Section */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                }}
-              >
-                <div
+              <div>
+                <label
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
                   }}
                 >
-                  <div
-                    style={{
-                      width: '3px',
-                      height: '16px',
-                      backgroundColor: '#10b981',
-                      borderRadius: '2px',
-                    }}
-                  />
-                  <h5
-                    style={{
-                      margin: '0',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                    }}
-                  >
-                    Background & Layout
-                  </h5>
-                </div>
-
+                  Background Color
+                </label>
                 <ModernColorPicker
-                  label=""
                   value={headerConfig.backgroundColor}
                   onChange={(color) =>
                     handleFieldChange('backgroundColor', color)
                   }
-                  placeholder="Select header background color"
-                  showHex={true}
-                  showRgb={false}
-                  showHsl={false}
-                  showAlpha={false}
-                  showSwatches={true}
-                  showHistory={false}
-                  size="medium"
-                  theme="light"
-                  ariaLabel="Header background color selection"
+                  size="small"
                 />
-
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <label
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      color: '#374151',
-                      marginBottom: '4px',
-                      display: 'block',
-                    }}
-                  >
-                    Header Height
-                  </label>
-                  <select
-                    value={headerConfig.headerHeight}
-                    onChange={(e) =>
-                      handleFieldChange('headerHeight', e.target.value)
-                    }
-                    style={{
-                      padding: '10px 12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      width: '100%',
-                      backgroundColor: 'white',
-                      transition: 'all 0.2s ease',
-                      outline: 'none',
-                    }}
-                    onFocus={(e) => {
-                      e.target.style.borderColor = '#1976d2';
-                      e.target.style.boxShadow =
-                        '0 0 0 3px rgba(25, 118, 210, 0.1)';
-                    }}
-                    onBlur={(e) => {
-                      e.target.style.borderColor = '#d1d5db';
-                      e.target.style.boxShadow = 'none';
-                    }}
-                  >
-                    <option value="3.75rem">Small (60px)</option>
-                    <option value="5rem">Medium (80px)</option>
-                    <option value="6.25rem">Large (100px)</option>
-                  </select>
-                </div>
-
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <label
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      color: '#333',
-                    }}
-                  >
-                    Header Position
-                  </label>
-                  <select
-                    value={headerConfig.headerPosition}
-                    onChange={(e) =>
-                      handleFieldChange('headerPosition', e.target.value)
-                    }
-                    style={{
-                      padding: '8px 12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '4px',
-                      fontSize: '14px',
-                      width: '100%',
-                      backgroundColor: 'white',
-                    }}
-                  >
-                    <option value="fixed">Fixed (Desktop)</option>
-                    <option value="sticky">Sticky (Mobile Friendly)</option>
-                    <option value="relative">Relative</option>
-                  </select>
-                  <small style={{ fontSize: '10px', color: '#666' }}>
-                    Sticky is recommended for mobile devices
-                  </small>
-                </div>
               </div>
-
-              {/* Border & Shadow Settings Section */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                }}
-              >
-                <div
+              <div>
+                <label
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
                   }}
                 >
-                  <div
-                    style={{
-                      width: '3px',
-                      height: '16px',
-                      backgroundColor: '#f59e0b',
-                      borderRadius: '2px',
-                    }}
-                  />
-                  <h5
-                    style={{
-                      margin: '0',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                    }}
-                  >
-                    Border & Shadow
-                  </h5>
-                </div>
+                  Header Height
+                </label>
+                <select
+                  value={headerConfig.headerHeight}
+                  onChange={(e) =>
+                    handleFieldChange('headerHeight', e.target.value)
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="4rem">Small (64px)</option>
+                  <option value="5rem">Medium (80px)</option>
+                  <option value="6rem">Large (96px)</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Header Position
+                </label>
+                <select
+                  value={headerConfig.headerPosition}
+                  onChange={(e) =>
+                    handleFieldChange('headerPosition', e.target.value)
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="fixed">Fixed</option>
+                  <option value="static">Static</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
+          {/* Section Divider */}
+          <div style={{ height: '32px' }} />
+
+          {/* Border & Shadow Section */}
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#ffffff',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px',
+                height: '16px',
+              }}
+            >
+              Border & Shadow
+            </h3>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                alignItems: 'end',
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Border Color
+                </label>
                 <ModernColorPicker
-                  label=""
                   value={headerConfig.borderColor}
                   onChange={(color) => handleFieldChange('borderColor', color)}
-                  placeholder="Select header border color"
-                  showHex={true}
-                  showRgb={false}
-                  showHsl={false}
-                  showAlpha={false}
-                  showSwatches={true}
-                  showHistory={false}
-                  size="medium"
-                  theme="light"
-                  ariaLabel="Header border color selection"
+                  size="small"
                 />
-
-                <div
+              </div>
+              <div>
+                <label
                   style={{
-                    display: 'flex',
-                    gap: '12px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
                   }}
                 >
-                  <div
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        color: '#333',
-                      }}
-                    >
-                      Border Height (px)
-                    </label>
-                    <input
-                      type="number"
-                      value={parseInt(headerConfig.borderHeight) || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value) {
-                          handleFieldChange('borderHeight', `${value}px`);
-                        } else {
-                          handleFieldChange('borderHeight', '0px');
-                        }
-                      }}
-                      placeholder="e.g., 1, 2, 3"
-                      min="0"
-                      max="20"
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        width: '100%',
-                      }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        color: '#333',
-                      }}
-                    >
-                      Border Shadow
-                    </label>
-                    <select
-                      value={headerConfig.borderShadow}
-                      onChange={(e) =>
-                        handleFieldChange('borderShadow', e.target.value)
-                      }
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        width: '100%',
-                        backgroundColor: 'white',
-                      }}
-                    >
-                      <option value="none">None</option>
-                      <option value="light">Light</option>
-                      <option value="medium">Medium</option>
-                      <option value="heavy">Heavy</option>
-                    </select>
-                  </div>
-                </div>
+                  Border Height
+                </label>
+                <input
+                  type="text"
+                  value={headerConfig.borderHeight}
+                  onChange={(e) =>
+                    handleFieldChange('borderHeight', e.target.value)
+                  }
+                  placeholder="1, 2, 3"
+                  style={{
+                    padding: '8px 10px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '13px',
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
               </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Border Shadow
+                </label>
+                <select
+                  value={headerConfig.borderShadow}
+                  onChange={(e) =>
+                    handleFieldChange('borderShadow', e.target.value)
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value="light">Light</option>
+                  <option value="medium">Medium</option>
+                  <option value="heavy">Heavy</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
-              {/* Logo Configuration Section */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '16px',
-                }}
-              >
+          {/* Section Divider */}
+          <div style={{ height: '32px' }} />
+
+          {/* Logo Configuration Section */}
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#ffffff',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px',
+                height: '16px',
+              }}
+            >
+              Logo Configuration
+            </h3>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                alignItems: 'end',
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Logo Size
+                </label>
+                <select
+                  value={currentLogoSize}
+                  onChange={(e) =>
+                    handlePredefinedLogoSizeChange(
+                      e.target.value as 'small' | 'medium' | 'large'
+                    )
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
                 <div
                   style={{
+                    fontSize: '11px',
+                    color: '#6b7280',
+                    marginTop: '4px',
+                    fontStyle: 'italic',
+                    width: '100%',
+                    minHeight: '32px',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    marginBottom: '8px',
                   }}
                 >
-                  <div
-                    style={{
-                      width: '3px',
-                      height: '16px',
-                      backgroundColor: '#8b5cf6',
-                      borderRadius: '2px',
-                    }}
-                  />
-                  <h5
-                    style={{
-                      margin: '0',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      color: '#374151',
-                    }}
-                  >
-                    Logo Configuration
-                  </h5>
+                  {
+                    getLogoSizeOptions(
+                      headerConfig.logoOrientation as 'portrait' | 'landscape'
+                    )[currentLogoSize].description
+                  }
                 </div>
-
-                <div
+              </div>
+              <div>
+                <label
                   style={{
-                    display: 'flex',
-                    gap: '12px',
-                  }}
-                >
-                  <div
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        color: '#333',
-                      }}
-                    >
-                      Logo Orientation
-                    </label>
-                    <select
-                      value={headerConfig.logoOrientation}
-                      onChange={(e) =>
-                        handleLogoOrientationChange(e.target.value)
-                      }
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        width: '100%',
-                        backgroundColor: 'white',
-                      }}
-                    >
-                      <option value="portrait">Portrait (Tall)</option>
-                      <option value="landscape">Landscape (Wide)</option>
-                    </select>
-                  </div>
-
-                  <div
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                    }}
-                  >
-                    <label
-                      style={{
-                        fontSize: '12px',
-                        fontWeight: '500',
-                        color: '#333',
-                      }}
-                    >
-                      Logo Size
-                    </label>
-                    <select
-                      value={
-                        headerConfig.logoHeight === '5rem'
-                          ? 'small'
-                          : headerConfig.logoHeight === '6.5rem'
-                            ? 'medium'
-                            : 'large'
-                      }
-                      onChange={(e) => handleLogoSizeChange(e.target.value)}
-                      style={{
-                        padding: '8px 12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px',
-                        width: '100%',
-                        backgroundColor: 'white',
-                      }}
-                    >
-                      <option value="small">Small</option>
-                      <option value="medium">Medium</option>
-                      <option value="large">Large</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    padding: '12px',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '6px',
                     fontSize: '12px',
-                    color: '#666',
-                    border: '1px solid #e9ecef',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
                   }}
                 >
-                  <strong>Current Dimensions:</strong>
-                  <br />
-                  Width: {headerConfig.logoWidth}
-                  <br />
-                  Height: {headerConfig.logoHeight}
+                  Logo Orientation
+                </label>
+                <select
+                  value={headerConfig.logoOrientation}
+                  onChange={(e) => handleLogoOrientationChange(e.target.value)}
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="portrait">Portrait</option>
+                  <option value="landscape">Landscape</option>
+                </select>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: '#6b7280',
+                    marginTop: '4px',
+                    fontStyle: 'italic',
+                    width: '100%',
+                    minHeight: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {headerConfig.logoOrientation === 'portrait'
+                    ? 'Tall orientation for square or vertical logos'
+                    : 'Wide orientation for horizontal or text-based logos'}
                 </div>
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Logo Shadow
+                </label>
+                <select
+                  value={headerConfig.logoShadow}
+                  onChange={(e) =>
+                    handleFieldChange('logoShadow', e.target.value)
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value="light">Light</option>
+                  <option value="medium">Medium</option>
+                  <option value="heavy">Heavy</option>
+                  <option value="glow">Glow</option>
+                </select>
+              </div>
+              {headerConfig.logoShadow !== 'none' && (
+                <>
+                  <div>
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        marginBottom: '4px',
+                        display: 'block',
+                      }}
+                    >
+                      Logo Shadow Color
+                    </label>
+                    <select
+                      value={headerConfig.logoShadowColor}
+                      onChange={(e) =>
+                        handleFieldChange('logoShadowColor', e.target.value)
+                      }
+                      style={{
+                        padding: crossPlatformStyles.inputPadding,
+                        border: '1px solid #d1d5db',
+                        borderRadius: crossPlatformStyles.inputBorderRadius,
+                        fontSize: crossPlatformStyles.inputFontSize,
+                        width: '100%',
+                        backgroundColor: 'white',
+                        transition: 'all 0.2s ease',
+                        outline: 'none',
+                        minHeight: crossPlatformStyles.inputMinHeight,
+                        height: crossPlatformStyles.inputMinHeight,
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.boxShadow =
+                          '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#d1d5db';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      <option value="black">Black</option>
+                      <option value="grey">Grey</option>
+                      <option value="white">White</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        marginBottom: '4px',
+                        display: 'block',
+                      }}
+                    >
+                      Logo Shadow Direction
+                    </label>
+                    <select
+                      value={headerConfig.logoShadowDirection}
+                      onChange={(e) =>
+                        handleFieldChange('logoShadowDirection', e.target.value)
+                      }
+                      style={{
+                        padding: crossPlatformStyles.inputPadding,
+                        border: '1px solid #d1d5db',
+                        borderRadius: crossPlatformStyles.inputBorderRadius,
+                        fontSize: crossPlatformStyles.inputFontSize,
+                        width: '100%',
+                        backgroundColor: 'white',
+                        transition: 'all 0.2s ease',
+                        outline: 'none',
+                        minHeight: crossPlatformStyles.inputMinHeight,
+                        height: crossPlatformStyles.inputMinHeight,
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.borderColor = '#3b82f6';
+                        e.target.style.boxShadow =
+                          '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onBlur={(e) => {
+                        e.target.style.borderColor = '#d1d5db';
+                        e.target.style.boxShadow = 'none';
+                      }}
+                    >
+                      <option value="top-left">Top Left</option>
+                      <option value="top">Top</option>
+                      <option value="top-right">Top Right</option>
+                      <option value="left">Left</option>
+                      <option value="bottom-left">Bottom Left</option>
+                      <option value="bottom">Bottom</option>
+                      <option value="bottom-right">Bottom Right</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Section Divider */}
+          <div style={{ height: '32px' }} />
+
+          {/* Toggle Menu Button Section */}
+          <div
+            style={{
+              padding: '12px',
+              backgroundColor: '#ffffff',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px',
+                height: '16px',
+              }}
+            >
+              Toggle Menu Button
+            </h3>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '8px',
+                alignItems: 'end',
+              }}
+            >
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Button Shape
+                </label>
+                <select
+                  value={toggleMenuConfig.shape}
+                  onChange={(e) =>
+                    handleToggleMenuConfigChange('shape', e.target.value)
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="circle">Circle</option>
+                  <option value="rounded">Rounded</option>
+                  <option value="square">Square</option>
+                  <option value="pill">Pill</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Button Size
+                </label>
+                <select
+                  value={toggleMenuConfig.size}
+                  onChange={(e) =>
+                    handleToggleMenuConfigChange('size', e.target.value)
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Mobile Size
+                </label>
+                <select
+                  value={toggleMenuConfig.responsive.mobile.size}
+                  onChange={(e) =>
+                    handleToggleMenuResponsiveChange(
+                      'mobile',
+                      'size',
+                      e.target.value
+                    )
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Tablet Size
+                </label>
+                <select
+                  value={toggleMenuConfig.responsive.tablet.size}
+                  onChange={(e) =>
+                    handleToggleMenuResponsiveChange(
+                      'tablet',
+                      'size',
+                      e.target.value
+                    )
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+              <div>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    color: '#6b7280',
+                    marginBottom: '4px',
+                    display: 'block',
+                  }}
+                >
+                  Desktop Size
+                </label>
+                <select
+                  value={toggleMenuConfig.responsive.desktop.size}
+                  onChange={(e) =>
+                    handleToggleMenuResponsiveChange(
+                      'desktop',
+                      'size',
+                      e.target.value
+                    )
+                  }
+                  style={{
+                    padding: crossPlatformStyles.inputPadding,
+                    border: '1px solid #d1d5db',
+                    borderRadius: crossPlatformStyles.inputBorderRadius,
+                    fontSize: crossPlatformStyles.inputFontSize,
+                    width: '100%',
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s ease',
+                    outline: 'none',
+                    minHeight: crossPlatformStyles.inputMinHeight,
+                    height: crossPlatformStyles.inputMinHeight,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow =
+                      '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                >
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
               </div>
             </div>
           </div>

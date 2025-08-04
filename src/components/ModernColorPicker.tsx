@@ -2,6 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { useResponsiveStyles } from '@/hooks/useResponsiveStyles';
+import {
+  getCrossPlatformStyles,
+  getPlatformCSS,
+} from '@/utils/crossPlatformStyles';
 
 interface ModernColorPickerProps {
   value: string;
@@ -62,6 +66,8 @@ export default function ModernColorPicker({
   onOpen,
 }: ModernColorPickerProps) {
   const responsive = useResponsiveStyles();
+  const crossPlatformStyles = getCrossPlatformStyles(responsive);
+  const platformCSS = getPlatformCSS(responsive);
 
   // Convert RGB to HSL
   const rgbToHsl = useCallback((r: number, g: number, b: number) => {
@@ -541,12 +547,12 @@ export default function ModernColorPicker({
           <div
             style={{
               position: 'absolute',
-              left: '12px',
+              left: size === 'small' ? '8px' : '12px',
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '24px',
-              height: '24px',
-              borderRadius: '8px',
+              width: size === 'small' ? '20px' : '24px',
+              height: size === 'small' ? '20px' : '24px',
+              borderRadius: size === 'small' ? '4px' : '8px',
               background: `linear-gradient(45deg, transparent 50%, rgba(0,0,0,0.1) 50%)`,
               border: '2px solid #ffffff',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -623,26 +629,57 @@ export default function ModernColorPicker({
           aria-invalid={required && !currentColor.hex ? 'true' : 'false'}
           style={{
             width: '100%',
-            padding: '12px 16px',
-            border: `2px solid ${currentTheme.border}`,
-            borderRadius: '12px',
-            backgroundColor: currentTheme.background,
+            padding:
+              size === 'small' ? crossPlatformStyles.inputPadding : '12px 16px',
+            border:
+              size === 'small'
+                ? '1px solid #d1d5db'
+                : `1px solid ${currentTheme.border}`,
+            borderRadius:
+              size === 'small' ? crossPlatformStyles.inputBorderRadius : '12px',
+            backgroundColor:
+              size === 'small' ? 'white' : currentTheme.background,
             color: currentTheme.text,
-            fontSize: responsive.smallFontSize,
+            fontSize:
+              size === 'small' ? crossPlatformStyles.inputFontSize : '13px',
             fontFamily: showHex ? 'monospace' : 'inherit',
             cursor: disabled ? 'not-allowed' : 'pointer',
             opacity: disabled ? 0.6 : 1,
             transition: 'all 0.2s ease',
             position: 'relative',
-            paddingLeft: showPreview ? '48px' : '16px',
+            paddingLeft: showPreview
+              ? size === 'small'
+                ? '40px'
+                : '48px'
+              : size === 'small'
+                ? '10px'
+                : '16px',
+            minHeight:
+              size === 'small' ? crossPlatformStyles.inputMinHeight : 'auto',
+            height:
+              size === 'small' ? crossPlatformStyles.inputMinHeight : 'auto',
+            ...(responsive.isIOS && size === 'small' ? platformCSS.ios : {}),
+            ...(responsive.isAndroid && size === 'small'
+              ? platformCSS.android
+              : {}),
+            ...(responsive.isWindows && size === 'small'
+              ? platformCSS.windows
+              : {}),
+            ...(responsive.isMac && size === 'small' ? platformCSS.mac : {}),
+            ...(responsive.isTouchDevice && size === 'small'
+              ? platformCSS.touch
+              : {}),
           }}
           onFocus={(e) => {
             if (!disabled) {
-              e.target.style.borderColor = '#1976d2';
+              e.target.style.borderColor = '#3b82f6';
+              e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
             }
           }}
           onBlur={(e) => {
-            e.target.style.borderColor = currentTheme.border;
+            e.target.style.borderColor =
+              size === 'small' ? '#d1d5db' : currentTheme.border;
+            e.target.style.boxShadow = 'none';
           }}
         />
 
@@ -651,12 +688,12 @@ export default function ModernColorPicker({
           <div
             style={{
               position: 'absolute',
-              left: '12px',
+              left: size === 'small' ? '8px' : '12px',
               top: '50%',
               transform: 'translateY(-50%)',
-              width: '24px',
-              height: '24px',
-              borderRadius: '8px',
+              width: size === 'small' ? '20px' : '24px',
+              height: size === 'small' ? '20px' : '24px',
+              borderRadius: size === 'small' ? '4px' : '8px',
               background: `linear-gradient(45deg, transparent 50%, rgba(0,0,0,0.1) 50%)`,
               border: '2px solid #ffffff',
               boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
