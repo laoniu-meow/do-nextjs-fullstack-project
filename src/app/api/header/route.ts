@@ -3,22 +3,37 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
-    // For now, return empty header data structure
-    // This will be expanded when header configuration fields are added
-    const headerData = {
-      id: 'header-1',
-      title: '',
-      description: '',
-      status: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    // Get the latest published header configuration
+    const header = await prisma.header.findFirst({
+      where: {
+        status: 'PUBLISHED',
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
 
-    return NextResponse.json(headerData);
+    if (!header) {
+      // Return default header configuration
+      return NextResponse.json({
+        backgroundColor: '#ffffff',
+        headerHeight: '5rem',
+        headerPosition: 'fixed',
+        borderColor: '#e0e0e0',
+        borderHeight: '1px',
+        borderShadow: 'none',
+              logoWidth: '4.35rem',
+      logoHeight: '6.5rem',
+        logoOrientation: 'portrait',
+        status: 'PUBLISHED',
+      });
+    }
+
+    return NextResponse.json(header);
   } catch (error) {
-    console.error('Error fetching header data:', error);
+    console.error('Error fetching header configuration:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch header data' },
+      { error: 'Failed to fetch header configuration' },
       { status: 500 }
     );
   }
@@ -27,22 +42,28 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
-    // For now, just return the received data
-    // This will be expanded when header configuration fields are added
-    const headerData = {
-      id: 'header-1',
-      ...body,
-      status: 'active',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    const { backgroundColor, headerHeight, headerPosition, borderColor, borderHeight, borderShadow, logoWidth, logoHeight, logoOrientation } = body;
 
-    return NextResponse.json(headerData);
+    const header = await prisma.header.create({
+      data: {
+        backgroundColor: backgroundColor || '#ffffff',
+        headerHeight: headerHeight || '5rem',
+        headerPosition: headerPosition || 'fixed',
+        borderColor: borderColor || '#e0e0e0',
+        borderHeight: borderHeight || '1px',
+        borderShadow: borderShadow || 'none',
+        logoWidth: logoWidth || '6rem',
+        logoHeight: logoHeight || '6rem',
+        logoOrientation: logoOrientation || 'portrait',
+        status: 'PUBLISHED',
+      },
+    });
+
+    return NextResponse.json(header);
   } catch (error) {
-    console.error('Error creating header data:', error);
+    console.error('Error creating header configuration:', error);
     return NextResponse.json(
-      { error: 'Failed to create header data' },
+      { error: 'Failed to create header configuration' },
       { status: 500 }
     );
   }

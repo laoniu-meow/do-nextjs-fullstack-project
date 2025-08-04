@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -23,41 +20,79 @@ model User {
 }
 
 model Company {
-  id                    String   @id @default(cuid())
-  name                  String
-  registrationNumber    String?
-  address               String?
-  country               String?
-  postalCode            String?
-  email                 String?
-  contact               String?
-  logo                  String?
-  banner                String?
-  status                CompanyStatus @default(DRAFT)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  registrationNumber String?
+  address            String?
+  country            String?
+  postalCode         String?
+  email              String?
+  contact            String?
+  logo               String?
+  banner             String?
+  status             CompanyStatus @default(DRAFT)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@map("companies")
 }
 
 model CompanyStaging {
-  id                    String   @id @default(cuid())
-  name                  String
-  registrationNumber    String?
-  address               String?
-  country               String?
-  postalCode            String?
-  email                 String?
-  contact               String?
-  logo                  String?
-  banner                String?
-  status                StagingStatus @default(PENDING)
-  reviewedBy            String?
-  reviewedAt            DateTime?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 String        @id @default(cuid())
+  name               String
+  registrationNumber String?
+  address            String?
+  country            String?
+  postalCode         String?
+  email              String?
+  contact            String?
+  logo               String?
+  banner             String?
+  status             StagingStatus @default(PENDING)
+  reviewedBy         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
 
   @@map("company_staging")
+}
+
+model Header {
+  id              String        @id @default(cuid())
+  backgroundColor String        @default("#ffffff")
+  borderColor     String        @default("#e0e0e0")
+  borderHeight    String        @default("1px")
+  borderShadow    String        @default("none")
+  logoWidth       String        @default("4.35rem")
+  logoHeight      String        @default("6.5rem")
+  logoOrientation String        @default("portrait")
+  status          CompanyStatus @default(PUBLISHED)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  headerHeight    String        @default("5rem")
+  headerPosition  String        @default("fixed")
+
+  @@map("headers")
+}
+
+model HeaderStaging {
+  id              String        @id @default(cuid())
+  backgroundColor String        @default("#ffffff")
+  borderColor     String        @default("#e0e0e0")
+  borderHeight    String        @default("1px")
+  borderShadow    String        @default("none")
+  logoWidth       String        @default("4.35rem")
+  logoHeight      String        @default("6.5rem")
+  logoOrientation String        @default("portrait")
+  status          StagingStatus @default(PENDING)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  headerHeight    String        @default("5rem")
+  headerPosition  String        @default("fixed")
+
+  @@map("header_staging")
 }
 
 enum CompanyStatus {
@@ -75,4 +110,4 @@ enum StagingStatus {
 enum Role {
   USER
   ADMIN
-} 
+}

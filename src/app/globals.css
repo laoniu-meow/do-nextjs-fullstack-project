@@ -1,19 +1,103 @@
-@import "tailwindcss";
+@import "tailwindcss/preflight";
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Comprehensive responsive improvements for all screen sizes */
+
+/* Extra Small (phones) */
+@media (max-width: 639px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Small (large phones) */
+@media (min-width: 640px) and (max-width: 767px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Medium (tablets) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Large (laptops) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+/* Extra Large (desktops) */
+@media (min-width: 1280px) and (max-width: 1535px) {
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+/* 2XL (large desktops) */
+@media (min-width: 1536px) {
+  html, body {
+    overflow-x: hidden;
+  }
+}
+
+/* Prevent content from being hidden behind fixed headers */
+.has-fixed-header {
+  padding-top: var(--header-height, 5rem);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus indicators for accessibility */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #1976d2;
+  outline-offset: 2px;
+}
+
+/* Improve mobile tap highlights */
+* {
+  -webkit-tap-highlight-color: transparent;
 }

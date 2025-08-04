@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Image from 'next/image';
 
 interface CompanyLogo {
@@ -20,12 +20,19 @@ interface HeaderConfig {
   logoOrientation: string;
 }
 
-type ScreenSize = 'mobile' | 'tablet' | 'desktop';
+interface ResponsiveHeaderProps {
+  headerConfig: HeaderConfig;
+  companyLogo: CompanyLogo | null;
+  isLoading: boolean;
+  screenSize: 'mobile' | 'tablet' | 'desktop';
+}
 
-export default function Header() {
-  const [companyLogo, setCompanyLogo] = useState<CompanyLogo | null>(null);
-  const [screenSize, setScreenSize] = useState<ScreenSize>('desktop');
-
+export default function ResponsiveHeader({
+  headerConfig,
+  companyLogo,
+  isLoading,
+  screenSize,
+}: ResponsiveHeaderProps) {
   // Helper function to get border shadow CSS
   const getBorderShadow = (shadowType: string) => {
     switch (shadowType) {
@@ -40,65 +47,44 @@ export default function Header() {
     }
   };
 
-  // Comprehensive screen size detection
-  useEffect(() => {
-    const getScreenSize = (width: number): ScreenSize => {
-      if (width < 768) return 'mobile'; // Mobile devices
-      if (width < 1024) return 'tablet'; // Tablet devices
-      return 'desktop'; // Desktop devices
-    };
-
-    const checkScreenSize = () => {
-      setScreenSize(getScreenSize(window.innerWidth));
-    };
-
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
-
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
-
-  // Responsive header configuration for all screen sizes
-  const getResponsiveHeaderConfig = (config: HeaderConfig) => {
-    const baseHeight = parseFloat(config.headerHeight);
-    const baseLogoWidth = parseFloat(config.logoWidth);
-    const baseLogoHeight = parseFloat(config.logoHeight);
-
+  // Responsive logo sizing based on screen size - Improved scaling
+  const getResponsiveLogoSize = (baseSize: string, screenSize: string) => {
+    const baseValue = parseFloat(baseSize);
     switch (screenSize) {
-      case 'mobile': // Mobile devices - Improved balance
-        return {
-          ...config,
-          headerHeight: `${baseHeight * 0.85}rem`, // Increased from 70% to 85%
-          headerPosition: 'sticky', // Better for mobile scrolling
-          logoWidth: `${baseLogoWidth * 0.65}rem`, // Increased from 50% to 65%
-          logoHeight: `${baseLogoHeight * 0.65}rem`,
-        };
-      case 'tablet': // Tablet devices - Keep current (looks good)
-        return {
-          ...config,
-          headerHeight: `${baseHeight * 0.85}rem`, // 85% of original
-          headerPosition: config.headerPosition, // Keep user preference
-          logoWidth: `${baseLogoWidth * 0.75}rem`, // 75% of original
-          logoHeight: `${baseLogoHeight * 0.75}rem`,
-        };
-      case 'desktop': // Desktop devices - Slightly smaller logo
-        return {
-          ...config,
-          headerHeight: config.headerHeight, // Full size
-          headerPosition: config.headerPosition,
-          logoWidth: `${baseLogoWidth * 0.85}rem`, // Reduced from 100% to 85%
-          logoHeight: `${baseLogoHeight * 0.85}rem`,
-        };
+      case 'mobile':
+        return `${baseValue * 0.55}rem`; // Reduced for more realistic mobile sizing
+      case 'tablet':
+        return `${baseValue * 0.75}rem`; // Keep current (looks good)
+      case 'desktop':
+        return `${baseValue * 0.85}rem`; // Reduced from 100% to 85%
       default:
-        return config;
+        return baseSize;
     }
   };
 
-  // Responsive padding for all screen sizes
-  const getResponsivePadding = () => {
+  // Responsive header height based on screen size - Improved scaling
+  const getResponsiveHeaderHeight = (
+    baseHeight: string,
+    screenSize: string
+  ) => {
+    const baseValue = parseFloat(baseHeight);
     switch (screenSize) {
       case 'mobile':
-        return '8px 12px';
+        return `${baseValue * 0.75}rem`; // Reduced for more realistic mobile height
+      case 'tablet':
+        return `${baseValue * 0.85}rem`; // Keep current (looks good)
+      case 'desktop':
+        return baseHeight; // Full height
+      default:
+        return baseHeight;
+    }
+  };
+
+  // Responsive padding based on screen size
+  const getResponsivePadding = (screenSize: string) => {
+    switch (screenSize) {
+      case 'mobile':
+        return '6px 10px'; // Reduced for more compact mobile layout
       case 'tablet':
         return '12px 16px';
       case 'desktop':
@@ -109,10 +95,10 @@ export default function Header() {
   };
 
   // Responsive gap for logo area
-  const getResponsiveGap = () => {
+  const getResponsiveGap = (screenSize: string) => {
     switch (screenSize) {
       case 'mobile':
-        return '10px';
+        return '8px'; // Reduced for more compact mobile layout
       case 'tablet':
         return '18px';
       case 'desktop':
@@ -123,7 +109,7 @@ export default function Header() {
   };
 
   // Responsive font sizes
-  const getResponsiveFontSize = () => {
+  const getResponsiveFontSize = (screenSize: string) => {
     switch (screenSize) {
       case 'mobile':
         return '10px';
@@ -136,94 +122,53 @@ export default function Header() {
     }
   };
 
-  const [headerConfig, setHeaderConfig] = useState<HeaderConfig>({
-    backgroundColor: '#ffffff',
-    headerHeight: '5rem',
-    headerPosition: 'fixed',
-    borderColor: '#e0e0e0',
-    borderHeight: '1px',
-    borderShadow: 'none',
-    logoWidth: '4.35rem', // Medium portrait (6.5rem * 0.67)
-    logoHeight: '6.5rem',
-    logoOrientation: 'portrait',
-  });
-  const [isLoading, setIsLoading] = useState(true);
+  // Responsive container width
+  const getResponsiveWidth = (screenSize: string) => {
+    switch (screenSize) {
+      case 'mobile':
+        return '375px';
+      case 'tablet':
+        return '768px';
+      case 'desktop':
+        return '1200px';
+      default:
+        return '1200px';
+    }
+  };
 
-  // Fetch company logo and header config from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-
-        // Fetch company logo
-        const logoResponse = await fetch('/api/company/logo');
-        if (logoResponse.ok) {
-          const logoData = await logoResponse.json();
-          setCompanyLogo(logoData);
-        } else {
-          console.error('Failed to fetch company logo');
-        }
-
-        // Fetch header configuration
-        const headerResponse = await fetch('/api/header');
-        if (headerResponse.ok) {
-          const headerData = await headerResponse.json();
-          setHeaderConfig(headerData);
-        } else {
-          console.error('Failed to fetch header configuration');
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchData();
-
-    // Listen for update events
-    const handleLogoUpdate = () => {
-      fetchData();
-    };
-
-    const handleHeaderUpdate = () => {
-      fetchData();
-    };
-
-    window.addEventListener('logo-updated', handleLogoUpdate);
-    window.addEventListener('header-updated', handleHeaderUpdate);
-
-    return () => {
-      window.removeEventListener('logo-updated', handleLogoUpdate);
-      window.removeEventListener('header-updated', handleHeaderUpdate);
-    };
-  }, []);
-
-  // Apply responsive configuration
-  const responsiveConfig = getResponsiveHeaderConfig(headerConfig);
-  const responsivePadding = getResponsivePadding();
-  const responsiveGap = getResponsiveGap();
-  const responsiveFontSize = getResponsiveFontSize();
+  const responsiveLogoWidth = getResponsiveLogoSize(
+    headerConfig.logoWidth,
+    screenSize
+  );
+  const responsiveLogoHeight = getResponsiveLogoSize(
+    headerConfig.logoHeight,
+    screenSize
+  );
+  const responsiveHeaderHeight = getResponsiveHeaderHeight(
+    headerConfig.headerHeight,
+    screenSize
+  );
+  const responsivePadding = getResponsivePadding(screenSize);
+  const responsiveGap = getResponsiveGap(screenSize);
+  const responsiveFontSize = getResponsiveFontSize(screenSize);
+  const responsiveWidth = getResponsiveWidth(screenSize);
 
   return (
-    <header
+    <div
       style={{
-        width: '100%',
-        height: responsiveConfig.headerHeight,
-        position: responsiveConfig.headerPosition as
-          | 'fixed'
-          | 'sticky'
-          | 'relative',
-        top: 0,
-        left: 0,
-        backgroundColor: responsiveConfig.backgroundColor,
-        borderBottom: `${responsiveConfig.borderHeight} solid ${responsiveConfig.borderColor}`,
-        padding: '0', // Remove padding from header container
-        zIndex: 1000,
-        boxShadow: getBorderShadow(responsiveConfig.borderShadow),
+        width: responsiveWidth,
+        height: responsiveHeaderHeight,
+        backgroundColor: headerConfig.backgroundColor,
+        borderBottom: `${headerConfig.borderHeight} solid ${headerConfig.borderColor}`,
+        padding: '0', // Remove padding from container
+        boxShadow: getBorderShadow(headerConfig.borderShadow),
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
+        borderRadius: '8px',
+        margin: '0 auto',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
       {/* Logo Area */}
@@ -234,7 +179,7 @@ export default function Header() {
           gap: responsiveGap,
           marginLeft:
             screenSize === 'mobile'
-              ? '12px'
+              ? '8px'
               : screenSize === 'tablet'
                 ? '16px'
                 : '24px',
@@ -243,8 +188,8 @@ export default function Header() {
         {/* Company Logo */}
         <div
           style={{
-            width: responsiveConfig.logoWidth,
-            height: responsiveConfig.logoHeight,
+            width: responsiveLogoWidth,
+            height: responsiveLogoHeight,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -275,12 +220,8 @@ export default function Header() {
             <Image
               src={companyLogo.logo}
               alt={`${companyLogo.companyName} Logo`}
-              width={
-                parseInt(responsiveConfig.logoWidth.replace('rem', '')) * 16
-              }
-              height={
-                parseInt(responsiveConfig.logoHeight.replace('rem', '')) * 16
-              }
+              width={parseInt(responsiveLogoWidth.replace('rem', '')) * 16}
+              height={parseInt(responsiveLogoHeight.replace('rem', '')) * 16}
               style={{
                 objectFit: 'contain',
                 borderRadius: '8px',
@@ -331,7 +272,7 @@ export default function Header() {
           minWidth: '44px',
           marginRight:
             screenSize === 'mobile'
-              ? '12px'
+              ? '8px'
               : screenSize === 'tablet'
                 ? '16px'
                 : '24px',
@@ -392,6 +333,6 @@ export default function Header() {
           />
         </div>
       </button>
-    </header>
+    </div>
   );
 }
