@@ -41,7 +41,6 @@ export default function AdminPage() {
 
   const handleMenuItemClick = (item: any) => {
     setActiveItemId(item.id);
-    console.log('Menu item clicked:', item);
 
     // Navigate to the appropriate page
     if (item.href && typeof window !== 'undefined') {

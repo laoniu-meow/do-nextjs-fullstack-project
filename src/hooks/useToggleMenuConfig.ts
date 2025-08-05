@@ -17,11 +17,9 @@ export const useToggleMenuConfig = () => {
       if (data.success && data.config) {
         setConfig(data.config);
       } else {
-        console.warn('No toggle menu configuration found, using defaults');
         setConfig(defaultToggleMenuConfig);
       }
     } catch (err) {
-      console.error('Error fetching toggle menu configuration:', err);
       setError('Failed to load toggle menu configuration');
       setConfig(defaultToggleMenuConfig);
     } finally {

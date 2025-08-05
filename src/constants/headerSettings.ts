@@ -52,7 +52,6 @@ export const LOGO_SHADOW_DIRECTION_OPTIONS = [
 export const BUTTON_SHAPE_OPTIONS = [
   { value: 'rounded', label: 'Rounded' },
   { value: 'square', label: 'Square' },
-  { value: 'pill', label: 'Pill' },
 ] as const;
 
 export const BUTTON_SIZE_OPTIONS = [

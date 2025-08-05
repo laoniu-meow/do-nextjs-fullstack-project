@@ -21,7 +21,6 @@ export default function ModernColorPickerTestPage() {
 
   const handleColorChange = (key: string, color: string) => {
     setSelectedColors((prev) => ({ ...prev, [key]: color }));
-    console.log(`${key} color changed to:`, color);
   };
 
   return (

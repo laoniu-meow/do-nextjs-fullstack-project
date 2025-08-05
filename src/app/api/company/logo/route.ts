@@ -18,7 +18,6 @@ export async function GET() {
       companyName: companyData?.name || 'Company Name'
     });
   } catch (error) {
-    console.error('Error fetching company logo:', error);
     return NextResponse.json(
       { error: 'Failed to fetch company logo' },
       { status: 500 }

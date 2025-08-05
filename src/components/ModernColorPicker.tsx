@@ -301,16 +301,7 @@ export default function ModernColorPicker({
       hsl: { h: hue, s: saturation, l: lightness },
       alpha,
     };
-    console.log(
-      'HSL changed - hue:',
-      hue,
-      'sat:',
-      saturation,
-      'light:',
-      lightness,
-      'new hex:',
-      newColor.hex
-    );
+
     setCurrentColor(newColor);
 
     // Call onChange when color changes during drag
@@ -336,7 +327,6 @@ export default function ModernColorPicker({
   useEffect(() => {
     if (isClient && value && !dragTarget) {
       const parsedColor = parseColor(value);
-      console.log('Initializing color:', value, 'parsed:', parsedColor);
       setCurrentColor(parsedColor);
       setHue(parsedColor.hsl.h);
       setSaturation(parsedColor.hsl.s);
@@ -362,7 +352,6 @@ export default function ModernColorPicker({
     if (!dragTarget) return;
     function onMove(e: MouseEvent) {
       if (!pickerRef.current) return;
-      console.log('Mouse move, dragTarget:', dragTarget);
       const rect = pickerRef.current.getBoundingClientRect();
       if (dragTarget === 'sl') {
         const slRect = document
@@ -376,12 +365,6 @@ export default function ModernColorPicker({
         const y = Math.max(
           0,
           Math.min(1, (e.clientY - slRect.top) / slRect.height)
-        );
-        console.log(
-          'Setting saturation:',
-          x * 100,
-          'lightness:',
-          (1 - y) * 100
         );
         setSaturation(x * 100);
         setLightness((1 - y) * 100);

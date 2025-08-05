@@ -18,13 +18,11 @@ export default function ColorisProvider({ children }: ColorisProviderProps) {
     script.crossOrigin = 'anonymous';
 
     script.onload = () => {
-      console.log('Coloris.js loaded successfully');
+      // Coloris.js loaded successfully
     };
 
     script.onerror = () => {
-      console.error(
-        'Failed to load Coloris.js - falling back to native color picker'
-      );
+      // Failed to load Coloris.js - falling back to native color picker
       // Fallback to native color picker if Coloris fails to load
       const inputs = document.querySelectorAll('input[data-coloris]');
       inputs.forEach((input) => {

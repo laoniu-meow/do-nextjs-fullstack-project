@@ -15,7 +15,6 @@ export async function GET() {
 
     return NextResponse.json(staging);
   } catch (error) {
-    console.error('Error fetching header staging:', error);
     return NextResponse.json(
       { error: 'Failed to fetch header staging' },
       { status: 500 }
@@ -63,7 +62,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(staging);
   } catch (error) {
-    console.error('Error creating header staging:', error);
     return NextResponse.json(
       { error: 'Failed to create header staging' },
       { status: 500 }
@@ -116,7 +114,6 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json(productionHeader);
   } catch (error) {
-    console.error('Error approving header staging:', error);
     return NextResponse.json(
       { error: 'Failed to approve header staging' },
       { status: 500 }

@@ -31,6 +31,12 @@ export const adminMenuItems: MenuItemProps[] = [
         icon: '📋',
         href: '/admin/settings/header',
       },
+      {
+        id: 'layout',
+        label: 'Layout',
+        icon: '📐',
+        href: '/admin/settings/layout',
+      },
     ],
   },
 ];

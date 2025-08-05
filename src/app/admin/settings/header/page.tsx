@@ -8,6 +8,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
+import CircularProgress from '@mui/material/CircularProgress';
 import ModernColorPicker from '@/components/ModernColorPicker';
 import ResponsiveHeader from '@/components/ResponsiveHeader';
 import ToggleMenuButton from '@/components/ToggleMenuButton';
@@ -63,6 +64,12 @@ export default function HeaderSettingsPage() {
     'small' | 'medium' | 'large'
   >('medium');
 
+  // Change tracking states
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [originalSettings, setOriginalSettings] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
   // Staging states for individual settings
   const [stagingBackgroundColor, setStagingBackgroundColor] = useState<
     string | null
@@ -115,7 +122,7 @@ export default function HeaderSettingsPage() {
         setOriginalHeaderData(dataToUse);
 
         // Update headerConfig with the loaded data
-        setHeaderConfig({
+        const newHeaderConfig = {
           backgroundColor: dataToUse.backgroundColor || '#ffffff',
           headerHeight: dataToUse.headerHeight || '5rem',
           headerPosition: dataToUse.headerPosition || 'fixed',
@@ -128,10 +135,13 @@ export default function HeaderSettingsPage() {
           logoShadow: dataToUse.logoShadow || 'none',
           logoShadowColor: dataToUse.logoShadowColor || 'black',
           logoShadowDirection: dataToUse.logoShadowDirection || 'bottom-right',
-        });
+        };
+
+        setHeaderConfig(newHeaderConfig);
+        setOriginalSettings(newHeaderConfig); // Store original settings for cancel functionality
       }
     } catch (error) {
-      console.error('Error loading header data:', error);
+      // Handle error silently or implement proper error handling
     }
   };
 
@@ -142,6 +152,11 @@ export default function HeaderSettingsPage() {
   const handleMenuItemClick = (item: any) => {
     setActiveItemId(item.id);
     setIsOpen(false);
+
+    // Navigate to the appropriate page
+    if (item.href && typeof window !== 'undefined') {
+      window.location.href = item.href;
+    }
   };
 
   const getBorderShadow = (shadowType: string) => {
@@ -176,7 +191,7 @@ export default function HeaderSettingsPage() {
 
   const handleFieldChange = (field: string, value: string) => {
     setHeaderConfig((prev) => ({ ...prev, [field]: value }));
-    setHasChanges(true);
+    setHasUnsavedChanges(true);
   };
 
   const handleLogoOrientationChange = (orientation: string) => {
@@ -189,7 +204,7 @@ export default function HeaderSettingsPage() {
       logoWidth: width,
       logoHeight: height,
     }));
-    setHasChanges(true);
+    setHasUnsavedChanges(true);
   };
 
   const handleLogoSizeChange = (size: string) => {
@@ -229,7 +244,7 @@ export default function HeaderSettingsPage() {
     }));
   };
 
-  const saveToggleMenuConfig = async () => {
+  const saveToggleMenuConfig = useCallback(async () => {
     try {
       const response = await fetch('/api/toggle-menu/config', {
         method: 'POST',
@@ -240,16 +255,17 @@ export default function HeaderSettingsPage() {
       });
 
       if (response.ok) {
-        console.log('Toggle menu config saved successfully');
+        // Toggle menu config saved successfully
       } else {
-        console.error('Failed to save toggle menu config');
+        // Failed to save toggle menu config
       }
     } catch (error) {
-      console.error('Error saving toggle menu config:', error);
+      // Error saving toggle menu config
     }
-  };
+  }, [toggleMenuConfig]);
 
   const handleSaveToStaging = async () => {
+    setIsSaving(true);
     try {
       const response = await fetch('/api/header/staging', {
         method: 'POST',
@@ -262,17 +278,20 @@ export default function HeaderSettingsPage() {
       if (response.ok) {
         const savedData = await response.json();
         setStagingData(savedData);
-        setHasChanges(false);
-        console.log('Header settings saved to staging successfully');
+        setHasUnsavedChanges(false);
+        // Header settings saved to staging successfully
       } else {
-        console.error('Failed to save header settings to staging');
+        // Failed to save header settings to staging
       }
     } catch (error) {
-      console.error('Error saving header settings to staging:', error);
+      // Error saving header settings to staging
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleUploadToProduction = async () => {
+    setIsUploading(true);
     try {
       const response = await fetch('/api/header', {
         method: 'POST',
@@ -286,13 +305,15 @@ export default function HeaderSettingsPage() {
         const savedData = await response.json();
         setProductionData(savedData);
         setStagingData(null);
-        setHasChanges(false);
-        console.log('Header settings uploaded to production successfully');
+        setHasUnsavedChanges(false);
+        // Header settings uploaded to production successfully
       } else {
-        console.error('Failed to upload header settings to production');
+        // Failed to upload header settings to production
       }
     } catch (error) {
-      console.error('Error uploading header settings to production:', error);
+      // Error uploading header settings to production
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -301,12 +322,19 @@ export default function HeaderSettingsPage() {
       // Open preview in new tab
       window.open('/preview', '_blank');
     } else {
-      alert('No staging data available to preview');
+      // No staging data available to preview
     }
   };
 
   const handleToggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleCancelChanges = () => {
+    if (originalSettings) {
+      setHeaderConfig(originalSettings);
+      setHasUnsavedChanges(false);
+    }
   };
 
   const handlePredefinedLogoSizeChange = (
@@ -323,7 +351,7 @@ export default function HeaderSettingsPage() {
       logoWidth: logoSizeOption.width,
       logoHeight: logoSizeOption.height,
     }));
-    setHasChanges(true);
+    setHasUnsavedChanges(true);
   };
 
   useEffect(() => {
@@ -466,8 +494,8 @@ export default function HeaderSettingsPage() {
               <div
                 title="Preview Staging Data"
                 style={{
-                  padding: '8px',
-                  borderRadius: '8px',
+                  padding: '6px',
+                  borderRadius: '6px',
                   backgroundColor: '#f3f4f6',
                   transition: 'all 0.2s ease',
                 }}
@@ -483,66 +511,144 @@ export default function HeaderSettingsPage() {
                 <VisibilityIcon
                   onClick={handlePreviewClick}
                   style={{
-                    fontSize: responsive.isMobile ? '28px' : '32px',
+                    fontSize: responsive.isMobile ? '24px' : '28px',
                     color: '#1976d2',
                     cursor: 'pointer',
                     transition: 'color 0.2s ease',
                   }}
                 />
               </div>
+              {/* Save Button */}
               <div
-                title="Save to Staging"
+                title={isSaving ? 'Saving...' : 'Save to Staging'}
                 style={{
-                  padding: '8px',
-                  borderRadius: '8px',
-                  backgroundColor: '#f3f4f6',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  backgroundColor:
+                    hasUnsavedChanges && !isSaving ? '#1976d2' : '#f3f4f6',
                   transition: 'all 0.2s ease',
+                  opacity: hasUnsavedChanges && !isSaving ? 1 : 0.5,
+                  cursor:
+                    hasUnsavedChanges && !isSaving ? 'pointer' : 'not-allowed',
                 }}
+                onClick={
+                  hasUnsavedChanges && !isSaving
+                    ? handleSaveToStaging
+                    : undefined
+                }
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e5e7eb';
-                  e.currentTarget.style.transform = 'scale(1.05)';
+                  if (hasUnsavedChanges && !isSaving) {
+                    e.currentTarget.style.backgroundColor = '#1565c0';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.backgroundColor =
+                    hasUnsavedChanges && !isSaving ? '#1976d2' : '#f3f4f6';
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
-                <SaveIcon
-                  onClick={handleSaveToStaging}
-                  style={{
-                    fontSize: responsive.isMobile ? '28px' : '32px',
-                    color: '#1976d2',
-                    cursor: 'pointer',
-                    transition: 'color 0.2s ease',
-                  }}
-                />
+                {isSaving ? (
+                  <CircularProgress
+                    size={responsive.isMobile ? 24 : 28}
+                    color="inherit"
+                  />
+                ) : (
+                  <SaveIcon
+                    style={{
+                      fontSize: responsive.isMobile ? '24px' : '28px',
+                      color:
+                        hasUnsavedChanges && !isSaving ? '#ffffff' : '#6b7280',
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                )}
               </div>
+
+              {/* Upload/Cancel Button */}
               <div
-                title="Upload to Production"
+                title={
+                  hasUnsavedChanges && !isSaving
+                    ? 'Cancel Changes'
+                    : !hasUnsavedChanges && stagingData && !isUploading
+                      ? 'Upload to Production'
+                      : isUploading
+                        ? 'Uploading...'
+                        : 'No staging data to upload'
+                }
                 style={{
-                  padding: '8px',
-                  borderRadius: '8px',
-                  backgroundColor: '#f3f4f6',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  backgroundColor:
+                    hasUnsavedChanges && !isSaving
+                      ? '#dc3545'
+                      : !hasUnsavedChanges && stagingData && !isUploading
+                        ? '#28a745'
+                        : '#f3f4f6',
                   transition: 'all 0.2s ease',
+                  opacity:
+                    (hasUnsavedChanges && !isSaving) ||
+                    (!hasUnsavedChanges && stagingData && !isUploading)
+                      ? 1
+                      : 0.5,
+                  cursor:
+                    (hasUnsavedChanges && !isSaving) ||
+                    (!hasUnsavedChanges && stagingData && !isUploading)
+                      ? 'pointer'
+                      : 'not-allowed',
                 }}
+                onClick={
+                  hasUnsavedChanges && !isSaving
+                    ? handleCancelChanges
+                    : !hasUnsavedChanges && stagingData && !isUploading
+                      ? handleUploadToProduction
+                      : undefined
+                }
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e5e7eb';
-                  e.currentTarget.style.transform = 'scale(1.05)';
+                  if (
+                    (hasUnsavedChanges && !isSaving) ||
+                    (!hasUnsavedChanges && stagingData && !isUploading)
+                  ) {
+                    e.currentTarget.style.backgroundColor =
+                      hasUnsavedChanges && !isSaving ? '#c82333' : '#218838';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.backgroundColor =
+                    hasUnsavedChanges && !isSaving
+                      ? '#dc3545'
+                      : !hasUnsavedChanges && stagingData && !isUploading
+                        ? '#28a745'
+                        : '#f3f4f6';
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
               >
-                <CloudUploadIcon
-                  onClick={handleUploadToProduction}
-                  style={{
-                    fontSize: responsive.isMobile ? '28px' : '32px',
-                    color: '#1976d2',
-                    cursor: 'pointer',
-                    transition: 'color 0.2s ease',
-                  }}
-                />
+                {isUploading ? (
+                  <CircularProgress
+                    size={responsive.isMobile ? 24 : 28}
+                    color="inherit"
+                  />
+                ) : hasUnsavedChanges && !isSaving ? (
+                  <CancelIcon
+                    style={{
+                      fontSize: responsive.isMobile ? '24px' : '28px',
+                      color: '#ffffff',
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                ) : (
+                  <CloudUploadIcon
+                    style={{
+                      fontSize: responsive.isMobile ? '24px' : '28px',
+                      color:
+                        !hasUnsavedChanges && stagingData && !isUploading
+                          ? '#ffffff'
+                          : '#6b7280',
+                      transition: 'color 0.2s ease',
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1254,7 +1360,6 @@ export default function HeaderSettingsPage() {
                   <option value="circle">Circle</option>
                   <option value="rounded">Rounded</option>
                   <option value="square">Square</option>
-                  <option value="pill">Pill</option>
                 </select>
               </div>
               <div>

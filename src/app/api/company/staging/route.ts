@@ -10,7 +10,6 @@ export async function GET() {
 
     return NextResponse.json(stagingData || {});
   } catch (error) {
-    console.error('Error fetching staging data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch staging data' },
       { status: 500 }
@@ -22,11 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    console.log('Received staging data:', {
-      name: body.name,
-      logo: body.logo ? body.logo.substring(0, 50) + '...' : 'null',
-      banner: body.banner ? body.banner.substring(0, 50) + '...' : 'null',
-    });
+
     
     // Check if staging data exists
     const existingStaging = await prisma.companyStaging.findFirst({
@@ -56,7 +51,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(newStaging);
     }
   } catch (error) {
-    console.error('Error saving staging data:', error);
     return NextResponse.json(
       { error: 'Failed to save staging data' },
       { status: 500 }
@@ -118,7 +112,6 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json(newCompany);
     }
   } catch (error) {
-    console.error('Error approving staging data:', error);
     return NextResponse.json(
       { error: 'Failed to approve staging data' },
       { status: 500 }

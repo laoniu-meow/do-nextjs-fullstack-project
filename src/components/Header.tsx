@@ -254,7 +254,7 @@ export default function Header() {
           const logoData = await logoResponse.json();
           setCompanyLogo(logoData);
         } else {
-          console.error('Failed to fetch company logo');
+          // Failed to fetch company logo
         }
 
         // Fetch header configuration
@@ -263,10 +263,10 @@ export default function Header() {
           const headerData = await headerResponse.json();
           setHeaderConfig(headerData);
         } else {
-          console.error('Failed to fetch header configuration');
+          // Failed to fetch header configuration
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        // Error fetching data
       } finally {
         setIsLoading(false);
       }

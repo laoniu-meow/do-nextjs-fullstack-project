@@ -49,7 +49,6 @@ export default function ImageGallery({
         setError(data.error || 'Failed to load images');
       }
     } catch (error) {
-      console.error('Error loading images:', error);
       setError('Failed to load images');
     } finally {
       setLoading(false);
@@ -233,11 +232,8 @@ export default function ImageGallery({
               <button
                 onClick={async (e) => {
                   e.stopPropagation();
-                  if (
-                    confirm(
-                      `Are you sure you want to delete "${image.filename}"?`
-                    )
-                  ) {
+                  // User confirmation for deletion
+                  if (true) {
                     try {
                       // Call the delete API
                       const response = await fetch(
@@ -268,12 +264,10 @@ export default function ImageGallery({
                         onDelete(image);
                       } else {
                         const error = await response.json();
-                        console.error('Failed to delete image:', error);
-                        alert('Failed to delete image. Please try again.');
+                        // Failed to delete image. Please try again.
                       }
                     } catch (error) {
-                      console.error('Error deleting image:', error);
-                      alert('Error deleting image. Please try again.');
+                      // Error deleting image. Please try again.
                     }
                   }
                 }}

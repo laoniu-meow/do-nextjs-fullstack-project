@@ -1,6 +1,6 @@
 // Simplified Toggle Menu Button Configuration Types
 
-export type ButtonShape = 'circle' | 'rounded' | 'square' | 'pill';
+export type ButtonShape = 'circle' | 'rounded' | 'square';
 export type ButtonSize = 'small' | 'medium' | 'large';
 export type ShadowType = 'none' | 'light' | 'medium' | 'heavy';
 

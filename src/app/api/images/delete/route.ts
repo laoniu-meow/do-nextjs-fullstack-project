@@ -42,14 +42,12 @@ export async function DELETE(request: NextRequest) {
         type: type,
       });
     } catch (error) {
-      console.error('Error deleting file:', error);
       return NextResponse.json(
         { error: 'File not found or could not be deleted' },
         { status: 404 }
       );
     }
   } catch (error) {
-    console.error('Error in delete endpoint:', error);
     return NextResponse.json(
       { error: 'Failed to delete file' },
       { status: 500 }

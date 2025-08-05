@@ -12,7 +12,6 @@ export async function GET() {
       config: toggleMenuConfig,
     });
   } catch (error) {
-    console.error('Error fetching toggle menu config:', error);
     return NextResponse.json(
       {
         success: false,
@@ -51,7 +50,6 @@ export async function POST(request: NextRequest) {
       config: toggleMenuConfig,
     });
   } catch (error) {
-    console.error('Error saving toggle menu config:', error);
     return NextResponse.json(
       {
         success: false,

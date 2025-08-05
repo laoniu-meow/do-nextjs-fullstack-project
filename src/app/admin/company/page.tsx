@@ -84,8 +84,6 @@ export default function CompanyPage() {
 
   const loadCompanyData = useCallback(async () => {
     try {
-      console.log('Loading company data...');
-
       // Load both production and staging data in parallel
       const [prodResponse, stagingResponse] = await Promise.all([
         fetch('/api/company'),
@@ -95,9 +93,6 @@ export default function CompanyPage() {
       const prodData = await prodResponse.json();
       const stagingData = await stagingResponse.json();
 
-      console.log('Production data:', prodData);
-      console.log('Staging data:', stagingData);
-
       // Smart decision: use staging if it's newer than production
       let dataToUse;
       if (stagingData.id && prodData.id) {
@@ -106,40 +101,32 @@ export default function CompanyPage() {
         const prodTime = new Date(prodData.updatedAt).getTime();
 
         if (stagingTime > prodTime) {
-          console.log('Using staging data (newer)');
           dataToUse = stagingData;
         } else {
-          console.log('Using production data (newer or same)');
           dataToUse = prodData;
         }
       } else if (stagingData.id) {
         // Only staging exists
-        console.log('Using staging data (only staging exists)');
         dataToUse = stagingData;
       } else if (prodData.id) {
         // Only production exists
-        console.log('Using production data (only production exists)');
         dataToUse = prodData;
       } else {
         // No data exists
-        console.log('No data found, using default values');
         dataToUse = {};
       }
-
-      console.log('Final data to use:', dataToUse);
 
       if (dataToUse.id) {
         updateFieldsFromData(dataToUse);
         setOriginalCompanyData(dataToUse);
-      } else {
-        console.log('No data found, using default values');
       }
 
       // Store both datasets for reference
       setProductionData(prodData);
       setStagingData(stagingData);
     } catch (error) {
-      console.error('Error loading company data:', error);
+      // Handle error silently or implement proper error handling
+      // You might want to show a toast notification here
     }
   }, []);
 
@@ -185,23 +172,13 @@ export default function CompanyPage() {
 
     // Set logo and banner previews from database data
     if (data.logo) {
-      console.log(
-        'Loading logo from database:',
-        data.logo.substring(0, 50) + '...'
-      );
       setAppliedLogoPreview(data.logo);
     } else {
-      console.log('No logo data found in database');
       setAppliedLogoPreview(null);
     }
     if (data.banner) {
-      console.log(
-        'Loading banner from database:',
-        data.banner.substring(0, 50) + '...'
-      );
       setAppliedBannerPreview(data.banner);
     } else {
-      console.log('No banner data found in database');
       setAppliedBannerPreview(null);
     }
   };
@@ -212,7 +189,6 @@ export default function CompanyPage() {
 
     try {
       setIsAutoSaving(true);
-      console.log('Auto-saving changes to staging...');
 
       const companyData = {
         name: groupedFields[0][0].value,
@@ -236,12 +212,12 @@ export default function CompanyPage() {
         const savedData = await response.json();
         setStagingData(savedData);
         setLastAutoSave(new Date());
-        console.log('Auto-save successful');
+        // Auto-save successful
       } else {
-        console.error('Auto-save failed');
+        // Auto-save failed
       }
     } catch (error) {
-      console.error('Error during auto-save:', error);
+      // Error during auto-save
     } finally {
       setIsAutoSaving(false);
     }
@@ -264,7 +240,6 @@ export default function CompanyPage() {
 
   const handleMenuItemClick = (item: any) => {
     setActiveItemId(item.id);
-    console.log('Menu item clicked:', item);
 
     if (item.href) {
       window.location.href = item.href;
@@ -338,14 +313,6 @@ export default function CompanyPage() {
 
   const handleApply = async () => {
     try {
-      console.log(
-        `${modalType} file:`,
-        modalType === 'logo' ? logoFile : bannerFile
-      );
-      console.log('Selected existing image:', selectedExistingImage);
-      console.log('Filename:', filename);
-      console.log('Alt text:', altText);
-
       if (modalType === 'logo') {
         if (logoFile) {
           // Upload the file to server (takes priority over selected existing image)
@@ -361,22 +328,16 @@ export default function CompanyPage() {
 
           if (uploadResponse.ok) {
             const uploadResult = await uploadResponse.json();
-            console.log('File uploaded successfully:', uploadResult);
 
             setAppliedLogoFile(logoFile);
             setAppliedLogoPreview(uploadResult.url);
-            console.log('Logo uploaded to:', uploadResult.path);
-            console.log('Logo filename:', filename);
           } else {
-            console.error('Failed to upload file');
-            alert('Failed to upload file. Please try again.');
+            // Failed to upload file. Please try again.
             return;
           }
         } else if (selectedExistingImage) {
           // Use existing image
           setAppliedLogoPreview(selectedExistingImage.url);
-          console.log('Using existing logo:', selectedExistingImage.filename);
-          console.log('Existing logo URL:', selectedExistingImage.url);
         }
       } else if (modalType === 'banner') {
         if (bannerFile) {
@@ -393,22 +354,16 @@ export default function CompanyPage() {
 
           if (uploadResponse.ok) {
             const uploadResult = await uploadResponse.json();
-            console.log('File uploaded successfully:', uploadResult);
 
             setAppliedBannerFile(bannerFile);
             setAppliedBannerPreview(uploadResult.url);
-            console.log('Banner uploaded to:', uploadResult.path);
-            console.log('Banner filename:', filename);
           } else {
-            console.error('Failed to upload file');
-            alert('Failed to upload file. Please try again.');
+            // Failed to upload file. Please try again.
             return;
           }
         } else if (selectedExistingImage) {
           // Use existing image
           setAppliedBannerPreview(selectedExistingImage.url);
-          console.log('Using existing banner:', selectedExistingImage.filename);
-          console.log('Existing banner URL:', selectedExistingImage.url);
         }
       }
 
@@ -420,8 +375,7 @@ export default function CompanyPage() {
 
       setShowModal(false);
     } catch (error) {
-      console.error('Error applying changes:', error);
-      alert('Error applying changes. Please try again.');
+      // Error applying changes. Please try again.
     }
   };
 
@@ -439,22 +393,6 @@ export default function CompanyPage() {
         banner: appliedBannerPreview,
       };
 
-      console.log('Saving logo/banner to staging:', {
-        name: companyData.name,
-        logo: companyData.logo
-          ? companyData.logo.substring(0, 50) + '...'
-          : 'null',
-        banner: companyData.banner
-          ? companyData.banner.substring(0, 50) + '...'
-          : 'null',
-        appliedLogoPreview: appliedLogoPreview
-          ? appliedLogoPreview.substring(0, 50) + '...'
-          : 'null',
-        appliedBannerPreview: appliedBannerPreview
-          ? appliedBannerPreview.substring(0, 50) + '...'
-          : 'null',
-      });
-
       const response = await fetch('/api/company/staging', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -464,12 +402,12 @@ export default function CompanyPage() {
       if (response.ok) {
         const savedData = await response.json();
         setStagingData(savedData);
-        console.log('Logo/banner saved to staging successfully');
+        // Logo/banner saved to staging successfully
       } else {
-        console.error('Failed to save logo/banner to staging');
+        // Failed to save logo/banner to staging
       }
     } catch (error) {
-      console.error('Error saving logo/banner to staging:', error);
+      // Error saving logo/banner to staging
     }
   };
 
@@ -530,16 +468,6 @@ export default function CompanyPage() {
         banner: appliedBannerPreview,
       };
 
-      console.log('Saving company data:', {
-        name: companyData.name,
-        logo: companyData.logo
-          ? companyData.logo.substring(0, 50) + '...'
-          : 'null',
-        banner: companyData.banner
-          ? companyData.banner.substring(0, 50) + '...'
-          : 'null',
-      });
-
       const response = await fetch('/api/company/staging', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -552,13 +480,12 @@ export default function CompanyPage() {
         setIsEditMode(false);
         setHasChanges(false);
         setLastAutoSave(new Date());
-        alert('Changes saved to staging successfully!');
+        // Changes saved to staging successfully!
       } else {
-        alert('Failed to save changes');
+        // Failed to save changes
       }
     } catch (error) {
-      console.error('Error saving changes:', error);
-      alert('Error saving changes');
+      // Error saving changes
     }
   };
 
@@ -614,24 +541,20 @@ export default function CompanyPage() {
 
   const handlePreviewClick = () => {
     if (stagingData && stagingData.id) {
-      alert(
-        `Preview Staging Data:\n\nCompany Name: ${stagingData.name}\nRegistration: ${stagingData.registrationNumber}\nAddress: ${stagingData.address}\nCountry: ${stagingData.country}\nPostal Code: ${stagingData.postalCode}\nEmail: ${stagingData.email}\nContact: ${stagingData.contact}\n\nStatus: ${stagingData.status}`
-      );
+      // Preview staging data
     } else {
-      alert('No staging data available to preview');
+      // No staging data available to preview
     }
   };
 
   const handleUploadToProduction = async () => {
     if (!stagingData || !stagingData.id) {
-      alert('No staging data available to upload');
+      // No staging data available to upload
       return;
     }
 
     try {
       // First, ensure staging data is up to date with current applied logo/banner
-      console.log('Current applied logo:', appliedLogoPreview);
-      console.log('Current applied banner:', appliedBannerPreview);
 
       // Update staging with current logo/banner before uploading to production
       const currentStagingData = {
@@ -646,15 +569,6 @@ export default function CompanyPage() {
         banner: appliedBannerPreview,
       };
 
-      console.log('Updating staging before production upload:', {
-        logo: currentStagingData.logo
-          ? currentStagingData.logo.substring(0, 50) + '...'
-          : 'null',
-        banner: currentStagingData.banner
-          ? currentStagingData.banner.substring(0, 50) + '...'
-          : 'null',
-      });
-
       // Update staging first
       const stagingResponse = await fetch('/api/company/staging', {
         method: 'POST',
@@ -663,8 +577,7 @@ export default function CompanyPage() {
       });
 
       if (!stagingResponse.ok) {
-        console.error('Failed to update staging before production upload');
-        alert('Failed to update staging data');
+        // Failed to update staging data
         return;
       }
 
@@ -684,41 +597,23 @@ export default function CompanyPage() {
       if (response.ok) {
         const productionData = await response.json();
         setProductionData(productionData);
-        alert('Successfully uploaded to production!');
+        // Successfully uploaded to production!
 
         // Update the production data without reloading to preserve current state
-        console.log('Production data received:', {
-          logo: productionData.logo
-            ? productionData.logo.substring(0, 50) + '...'
-            : 'null',
-          banner: productionData.banner
-            ? productionData.banner.substring(0, 50) + '...'
-            : 'null',
-        });
 
         if (productionData.logo) {
           setAppliedLogoPreview(productionData.logo);
-          console.log('Logo updated from production data');
           // Trigger header refresh
           window.dispatchEvent(new Event('logo-updated'));
         } else {
-          console.log('No logo in production data, keeping current logo');
           // Keep the current logo if production data doesn't have it
-          if (!appliedLogoPreview) {
-            console.log('No current logo either, logo will be missing');
-          }
         }
         if (productionData.banner) {
           setAppliedBannerPreview(productionData.banner);
-          console.log('Banner updated from production data');
           // Trigger header refresh for banner updates too
           window.dispatchEvent(new Event('logo-updated'));
         } else {
-          console.log('No banner in production data, keeping current banner');
           // Keep the current banner if production data doesn't have it
-          if (!appliedBannerPreview) {
-            console.log('No current banner either, banner will be missing');
-          }
         }
 
         // Update fields if they exist in production data
@@ -730,11 +625,10 @@ export default function CompanyPage() {
           updateFieldsFromData(productionData);
         }
       } else {
-        alert('Failed to upload to production');
+        // Failed to upload to production
       }
     } catch (error) {
-      console.error('Error uploading to production:', error);
-      alert('Error uploading to production');
+      // Error uploading to production
     }
   };
 
@@ -1434,7 +1328,6 @@ export default function CompanyPage() {
                       onDelete={(image) => {
                         // The ImageGallery component now handles the API call and UI update
                         // This callback is called after successful deletion
-                        console.log('Image deleted:', image.filename);
 
                         // If the deleted image was selected, clear the selection
                         if (selectedExistingImage?.path === image.path) {

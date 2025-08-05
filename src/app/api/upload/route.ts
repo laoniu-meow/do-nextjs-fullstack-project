@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     try {
       await mkdir(uploadDir, { recursive: true });
     } catch (error) {
-      console.error('Error creating directory:', error);
+      // Error creating directory - continue anyway
     }
 
     // Convert file to buffer
@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error uploading file:', error);
     return NextResponse.json(
       { error: 'Failed to upload file' },
       { status: 500 }

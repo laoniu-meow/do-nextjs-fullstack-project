@@ -31,7 +31,6 @@ export async function GET() {
 
     return NextResponse.json(header);
   } catch (error) {
-    console.error('Error fetching header configuration:', error);
     return NextResponse.json(
       { error: 'Failed to fetch header configuration' },
       { status: 500 }
@@ -61,7 +60,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(header);
   } catch (error) {
-    console.error('Error creating header configuration:', error);
     return NextResponse.json(
       { error: 'Failed to create header configuration' },
       { status: 500 }

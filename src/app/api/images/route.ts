@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
         }
       } catch (error) {
         // Directory doesn't exist or can't be read - skip it
-        console.log(`Directory ${dir.path} not found or not accessible`);
       }
     }
 
@@ -74,7 +73,6 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error fetching images:', error);
     return NextResponse.json(
       { error: 'Failed to fetch images' },
       { status: 500 }

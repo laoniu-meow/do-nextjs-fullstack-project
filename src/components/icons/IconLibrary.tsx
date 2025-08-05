@@ -367,7 +367,6 @@ export const Icon: React.FC<IconProps> = ({
   const IconComponent = iconMap[name as keyof typeof iconMap];
 
   if (!IconComponent) {
-    console.warn(`Icon "${name}" not found in icon library`);
     return null;
   }
 

@@ -72,7 +72,6 @@ export default function ToggleMenuConfigTestPage() {
     { value: 'circle', label: 'Circle', description: 'Perfect circle shape' },
     { value: 'rounded', label: 'Rounded', description: 'Rounded corners' },
     { value: 'square', label: 'Square', description: 'Sharp corners' },
-    { value: 'pill', label: 'Pill', description: 'Oval pill shape' },
   ];
 
   // Available sizes

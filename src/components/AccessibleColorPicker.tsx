@@ -168,8 +168,7 @@ export default function AccessibleColorPicker({
         window.Coloris.init();
         setIsInitialized(true);
       } catch (error) {
-        console.error('Error initializing Coloris:', error);
-        // Fallback to native color picker
+        // Error initializing Coloris - fallback to native color picker
         fallbackToNativeColorPicker();
       }
     }
@@ -212,7 +211,7 @@ export default function AccessibleColorPicker({
         try {
           window.Coloris.close();
         } catch (error) {
-          console.error('Error closing Coloris:', error);
+          // Error closing Coloris
         }
       }
     };
@@ -297,7 +296,6 @@ export default function AccessibleColorPicker({
     if (inputRef.current) {
       inputRef.current.type = 'color';
       inputRef.current.removeAttribute('data-coloris');
-      console.log('Falling back to native color picker');
     }
   };
 

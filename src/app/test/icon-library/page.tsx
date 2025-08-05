@@ -494,7 +494,9 @@ export default function IconLibraryPage() {
               size="md"
               color="success"
               variant="solid"
-              onClick={() => alert('Save clicked!')}
+              onClick={() => {
+                // Save clicked!
+              }}
               title="Save"
             />
             <span style={{ fontSize: '14px', color: '#374151' }}>
