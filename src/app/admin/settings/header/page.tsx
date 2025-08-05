@@ -13,6 +13,7 @@ import ModernColorPicker from '@/components/ModernColorPicker';
 import ResponsiveHeader from '@/components/ResponsiveHeader';
 import ToggleMenuButton from '@/components/ToggleMenuButton';
 import { Icon } from '@/components/icons/IconLibrary';
+import { usePagePersistence } from '@/hooks/usePagePersistence';
 import {
   ToggleMenuButtonConfig,
   defaultToggleMenuConfig,
@@ -33,6 +34,13 @@ export default function HeaderSettingsPage() {
   const crossPlatformStyles = getCrossPlatformStyles(responsive);
   const [isOpen, setIsOpen] = useState(false);
   const [activeItemId, setActiveItemId] = useState('header');
+
+  // Page persistence hook
+  const { navigateToPage } = usePagePersistence({
+    storageKey: 'admin-current-page',
+    defaultPath: '/admin',
+    enabled: true,
+  });
 
   // Header configuration states
   const [originalHeaderData, setOriginalHeaderData] = useState<any>(null);
@@ -153,9 +161,9 @@ export default function HeaderSettingsPage() {
     setActiveItemId(item.id);
     setIsOpen(false);
 
-    // Navigate to the appropriate page
-    if (item.href && typeof window !== 'undefined') {
-      window.location.href = item.href;
+    // Navigate to the appropriate page using page persistence
+    if (item.href) {
+      navigateToPage(item.href);
     }
   };
 

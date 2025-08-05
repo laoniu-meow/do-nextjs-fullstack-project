@@ -14,11 +14,19 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Cancel';
 import Image from 'next/image';
+import { usePagePersistence } from '@/hooks/usePagePersistence';
 
 export default function CompanyPage() {
   const responsive = useResponsiveStyles();
   const [isOpen, setIsOpen] = useState(false);
   const [activeItemId, setActiveItemId] = useState('company');
+
+  // Page persistence hook
+  const { navigateToPage } = usePagePersistence({
+    storageKey: 'admin-current-page',
+    defaultPath: '/admin',
+    enabled: true,
+  });
 
   // File upload states
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -241,8 +249,9 @@ export default function CompanyPage() {
   const handleMenuItemClick = (item: any) => {
     setActiveItemId(item.id);
 
+    // Navigate to the appropriate page using page persistence
     if (item.href) {
-      window.location.href = item.href;
+      navigateToPage(item.href);
     }
 
     if (responsive.isMobile) {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MenuList, adminMenuItems } from '@/components/menu';
+import { usePagePersistence } from '@/hooks/usePagePersistence';
 
 export default function AdminPage() {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,6 +12,13 @@ export default function AdminPage() {
   const [orientation, setOrientation] = useState<'Portrait' | 'Landscape'>(
     'Portrait'
   );
+
+  // Page persistence hook
+  const { navigateToPage, clearSavedPage } = usePagePersistence({
+    storageKey: 'admin-current-page',
+    defaultPath: '/admin',
+    enabled: true,
+  });
 
   // Responsive breakpoint detection
   useEffect(() => {
@@ -42,9 +50,9 @@ export default function AdminPage() {
   const handleMenuItemClick = (item: any) => {
     setActiveItemId(item.id);
 
-    // Navigate to the appropriate page
-    if (item.href && typeof window !== 'undefined') {
-      window.location.href = item.href;
+    // Navigate to the appropriate page using page persistence
+    if (item.href) {
+      navigateToPage(item.href);
     }
 
     // Auto-close menu on mobile after item click

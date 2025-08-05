@@ -1,16 +1,27 @@
 'use client';
 
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { MenuList, adminMenuItems } from '@/components/menu';
 import { useResponsiveStyles } from '@/hooks/useResponsiveStyles';
 import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import ModernColorPicker from '@/components/ModernColorPicker';
+import { usePagePersistence } from '@/hooks/usePagePersistence';
 
 export default function LayoutSettingsPage() {
   const responsive = useResponsiveStyles();
   const [isOpen, setIsOpen] = useState(false);
   const [activeItemId, setActiveItemId] = useState('layout');
   const [activeTab, setActiveTab] = useState('header');
+
+  // Page persistence hook
+  const { navigateToPage, saveTabState, getSavedTabState } = usePagePersistence(
+    {
+      storageKey: 'admin-current-page',
+      defaultPath: '/admin',
+      enabled: true,
+      includeTabState: true,
+    }
+  );
 
   // Header Settings
   const [headerVisibility, setHeaderVisibility] = useState('visible');
@@ -104,6 +115,77 @@ export default function LayoutSettingsPage() {
   const [formWidth, setFormWidth] = useState('auto');
   const [formAlignment, setFormAlignment] = useState('left');
 
+  // Category Management Settings
+  const [categories, setCategories] = useState([
+    {
+      id: 'newsletter',
+      name: 'Newsletter',
+      description: 'Company updates and news',
+      recipientEmail: 'admin@company.com',
+      ccEmails: ['marketing@company.com'],
+      bccEmails: ['archive@company.com'],
+      isActive: true,
+    },
+    {
+      id: 'promotions',
+      name: 'Promotions',
+      description: 'Special offers and deals',
+      recipientEmail: 'marketing@company.com',
+      ccEmails: ['sales@company.com'],
+      bccEmails: [],
+      isActive: true,
+    },
+    {
+      id: 'events',
+      name: 'Events',
+      description: 'Upcoming events and webinars',
+      recipientEmail: 'events@company.com',
+      ccEmails: [],
+      bccEmails: [],
+      isActive: false,
+    },
+  ]);
+
+  // Category Management Functions
+  const addCategory = () => {
+    const newCategory = {
+      id: `category-${Date.now()}`,
+      name: '',
+      description: '',
+      recipientEmail: '',
+      ccEmails: [],
+      bccEmails: [],
+      isActive: true,
+    };
+    setCategories([...categories, newCategory]);
+  };
+
+  const removeCategory = (categoryId: string) => {
+    setCategories(categories.filter((cat) => cat.id !== categoryId));
+  };
+
+  const updateCategory = (categoryId: string, field: string, value: any) => {
+    setCategories(
+      categories.map((cat) =>
+        cat.id === categoryId ? { ...cat, [field]: value } : cat
+      )
+    );
+  };
+
+  // Generate dynamic description based on category name
+  const getDynamicDescription = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('newsletter')) return 'Company updates and news';
+    if (name.includes('promotion')) return 'Special offers and deals';
+    if (name.includes('event')) return 'Upcoming events and webinars';
+    if (name.includes('update')) return 'Product updates and features';
+    if (name.includes('blog')) return 'Latest blog posts and articles';
+    if (name.includes('sale')) return 'Sales and discounts';
+    if (name.includes('announcement')) return 'Important announcements';
+    if (name.includes('tip')) return 'Helpful tips and advice';
+    return `${categoryName} updates and information`;
+  };
+
   // Memoize the footer cards to prevent unnecessary re-renders
   const memoizedFooterCards = useMemo(() => footerCards, [footerCards]);
 
@@ -161,11 +243,24 @@ export default function LayoutSettingsPage() {
     setActiveItemId(item.id);
     setIsOpen(false);
 
-    // Navigate to the appropriate page
-    if (item.href && typeof window !== 'undefined') {
-      window.location.href = item.href;
+    // Navigate to the appropriate page using page persistence
+    if (item.href) {
+      navigateToPage(item.href);
     }
   };
+
+  // Restore tab state on mount
+  useEffect(() => {
+    const savedTab = getSavedTabState();
+    if (savedTab) {
+      setActiveTab(savedTab);
+    }
+  }, [getSavedTabState]);
+
+  // Save tab state when it changes
+  useEffect(() => {
+    saveTabState(activeTab);
+  }, [activeTab, saveTabState]);
 
   const handleTabClick = (tab: string) => {
     setActiveTab(tab);
@@ -428,8 +523,8 @@ export default function LayoutSettingsPage() {
                 width: responsive.isMobile
                   ? '100%'
                   : responsive.isTablet
-                    ? '15rem'
-                    : '17.5rem',
+                    ? '18rem'
+                    : '20rem',
                 backgroundColor: '#ffffff',
                 borderRadius: '0.5rem',
                 border: '1px solid #e9ecef',
@@ -2757,6 +2852,464 @@ export default function LayoutSettingsPage() {
                       marginBottom: '16px',
                     }}
                   />
+
+                  {/* Category Management Settings */}
+                  <div
+                    style={{
+                      borderTop: '1px solid #e9ecef',
+                      paddingTop: '16px',
+                      marginTop: '16px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '12px',
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: '#374151',
+                          margin: '0',
+                        }}
+                      >
+                        🏷️ Subscription Category
+                      </h4>
+                      <button
+                        onClick={addCategory}
+                        style={{
+                          width: responsive.isMobile ? '20px' : '20px',
+                          height: responsive.isMobile ? '20px' : '20px',
+                          borderRadius: '50%',
+                          backgroundColor: '#3b82f6',
+                          color: 'white',
+                          border: 'none',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: responsive.isMobile ? '20px' : '22px',
+                          fontWeight: 'bold',
+                          lineHeight: '1',
+                          padding: '0',
+                          boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+                          flexShrink: '0',
+                        }}
+                        title="Add Category"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {categories.map((category, index) => (
+                      <div
+                        key={category.id}
+                        style={{
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          padding: '12px',
+                          marginBottom: '12px',
+                          backgroundColor: '#ffffff',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '12px',
+                          }}
+                        >
+                          <h5
+                            style={{
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              color: '#374151',
+                              margin: '0',
+                            }}
+                          >
+                            {category.name || 'New Category'}
+                          </h5>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <button
+                              onClick={() => {
+                                // Save individual category logic here
+                                // console.log('Saving category:', category);
+                              }}
+                              style={{
+                                width: responsive.isMobile ? '20px' : '20px',
+                                height: responsive.isMobile ? '20px' : '20px',
+                                borderRadius: '50%',
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: responsive.isMobile ? '20px' : '22px',
+                                fontWeight: 'bold',
+                                lineHeight: '1',
+                                padding: '0',
+                                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
+                                flexShrink: '0',
+                              }}
+                              title="Save Category"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => removeCategory(category.id)}
+                              style={{
+                                width: responsive.isMobile ? '20px' : '20px',
+                                height: responsive.isMobile ? '20px' : '20px',
+                                borderRadius: '50%',
+                                backgroundColor: '#ec4899',
+                                color: 'white',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: responsive.isMobile ? '24px' : '26px',
+                                fontWeight: 'bold',
+                                lineHeight: '1',
+                                padding: '0',
+                                boxShadow: '0 2px 4px rgba(236, 72, 153, 0.3)',
+                                flexShrink: '0',
+                              }}
+                              title="Remove Category"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px',
+                          }}
+                        >
+                          {/* Category Name */}
+                          <div>
+                            <label
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: '#374151',
+                                marginBottom: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              Category Name
+                            </label>
+                            <input
+                              type="text"
+                              value={category.name}
+                              onChange={(e) => {
+                                const newName = e.target.value;
+                                updateCategory(category.id, 'name', newName);
+                                // Auto-update description only if it's empty or hasn't been manually edited
+                                if (
+                                  !category.description ||
+                                  category.description ===
+                                    getDynamicDescription(category.name)
+                                ) {
+                                  const newDescription =
+                                    getDynamicDescription(newName);
+                                  updateCategory(
+                                    category.id,
+                                    'description',
+                                    newDescription
+                                  );
+                                }
+                              }}
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                fontSize: '11px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                minHeight: '32px',
+                              }}
+                              placeholder="Newsletter"
+                            />
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                marginTop: '2px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              Display name for the category
+                            </div>
+                          </div>
+
+                          {/* Category Description */}
+                          <div>
+                            <label
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: '#374151',
+                                marginBottom: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              Category Description
+                            </label>
+                            <input
+                              type="text"
+                              value={category.description}
+                              onChange={(e) =>
+                                updateCategory(
+                                  category.id,
+                                  'description',
+                                  e.target.value
+                                )
+                              }
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                fontSize: '11px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                minHeight: '32px',
+                              }}
+                              placeholder="Company updates and news"
+                            />
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                marginTop: '2px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              Description shown to subscribers
+                            </div>
+                          </div>
+
+                          {/* Recipient Email */}
+                          <div>
+                            <label
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: '#374151',
+                                marginBottom: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              Recipient Email
+                            </label>
+                            <input
+                              type="email"
+                              value={category.recipientEmail}
+                              onChange={(e) =>
+                                updateCategory(
+                                  category.id,
+                                  'recipientEmail',
+                                  e.target.value
+                                )
+                              }
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                fontSize: '11px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                minHeight: '32px',
+                              }}
+                              placeholder="admin@company.com"
+                            />
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                marginTop: '2px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              Primary email for this category
+                            </div>
+                          </div>
+
+                          {/* CC Emails */}
+                          <div>
+                            <label
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: '#374151',
+                                marginBottom: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              CC Emails
+                            </label>
+                            <input
+                              type="text"
+                              value={category.ccEmails.join(', ')}
+                              onChange={(e) =>
+                                updateCategory(
+                                  category.id,
+                                  'ccEmails',
+                                  e.target.value
+                                    .split(',')
+                                    .map((email) => email.trim())
+                                    .filter((email) => email)
+                                )
+                              }
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                fontSize: '11px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                minHeight: '32px',
+                              }}
+                              placeholder="marketing@company.com, support@company.com"
+                            />
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                marginTop: '2px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              Additional recipients (comma-separated)
+                            </div>
+                          </div>
+
+                          {/* BCC Emails */}
+                          <div>
+                            <label
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: '#374151',
+                                marginBottom: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              BCC Emails
+                            </label>
+                            <input
+                              type="text"
+                              value={category.bccEmails.join(', ')}
+                              onChange={(e) =>
+                                updateCategory(
+                                  category.id,
+                                  'bccEmails',
+                                  e.target.value
+                                    .split(',')
+                                    .map((email) => email.trim())
+                                    .filter((email) => email)
+                                )
+                              }
+                              style={{
+                                width: '100%',
+                                padding: '6px 8px',
+                                fontSize: '11px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                backgroundColor: '#ffffff',
+                                color: '#374151',
+                                minHeight: '32px',
+                              }}
+                              placeholder="archive@company.com"
+                            />
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                marginTop: '2px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              Hidden recipients (comma-separated)
+                            </div>
+                          </div>
+
+                          {/* Active Status */}
+                          <div>
+                            <label
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: '500',
+                                color: '#374151',
+                                marginBottom: '4px',
+                                display: 'block',
+                              }}
+                            >
+                              Active Status
+                            </label>
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={category.isActive}
+                                onChange={(e) =>
+                                  updateCategory(
+                                    category.id,
+                                    'isActive',
+                                    e.target.checked
+                                  )
+                                }
+                                style={{ margin: 0 }}
+                              />
+                              <span
+                                style={{
+                                  fontSize: '10px',
+                                  color: '#374151',
+                                }}
+                              >
+                                Enable this category for subscriptions
+                              </span>
+                            </div>
+                            <div
+                              style={{
+                                fontSize: '10px',
+                                color: '#6b7280',
+                                marginTop: '2px',
+                                lineHeight: '1.2',
+                              }}
+                            >
+                              Show category in subscription form
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
